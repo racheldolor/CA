@@ -54,7 +54,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['otp_action'])) {
         throw new RuntimeException('Invalid verification action.');
     } catch (Throwable $exception) {
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => $exception->getMessage()]);
+        $message = $exception->getMessage();
+        if ($exception instanceof PDOException && $exception->getCode() === '42S02') {
+            error_log('OTP database migration is missing: ' . $message);
+            $message = 'Registration is temporarily unavailable because the OTP database migration has not been installed. Please import database/2026_11_otp_migration.sql into the capstone_culture_arts database.';
+        }
+        echo json_encode(['success' => false, 'message' => $message]);
         exit;
     }
 }

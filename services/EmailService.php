@@ -51,6 +51,7 @@ final class EmailService
             $mail->AltBody = "OCA Notification System\n\n{$heading}\n\nYour one-time verification code is: {$otp}\n\nThis code expires in {$minutes} minutes and can only be used once. If you did not request this, ignore this email and do not share the code.";
             $mail->send();
         } catch (Exception $exception) {
+            error_log('OTP email delivery failed: ' . $exception->getMessage());
             throw new RuntimeException('The verification email could not be sent. Please try again later.', 0, $exception);
         }
     }
