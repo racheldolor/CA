@@ -171,6 +171,7 @@ CREATE TABLE `applications` (
   `application_period` varchar(100) DEFAULT NULL,
   `application_year` year(4) DEFAULT NULL,
   `application_letter` text DEFAULT NULL,
+  `registration_password_hash` varchar(255) DEFAULT NULL,
   `rejection_reason` text DEFAULT NULL,
   `interview_date` datetime DEFAULT NULL,
   `interview_notes` text DEFAULT NULL,

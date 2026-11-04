@@ -45,3 +45,9 @@ access_log
 
 # Configuration files with sensitive data (if any)
 # config/secrets.php
+config/secrets.php
+vendor/
+composer.phar
+.env
+.env.*
+!.env.example

@@ -374,7 +374,8 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true && isset($_
                         </form>
 
                         <div class="signin-link">
-                            <p>Change password? <a href="change-password.php" class="link">Update here</a></p>
+                            <p>Forgot your password? <a href="forgot-password.php" class="link">Recover it here</a></p>
+                            <p>Check your application status? <a href="student/check-status.php" class="link">View status here</a></p>
                             <p>Interested in becoming a Student Performer? <a href="student/performer-profile-form.php" class="link">Register here</a></p>
                         </div>
                     </div>

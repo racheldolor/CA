@@ -132,7 +132,9 @@ try {
                 $isArchived = ($status === 'rejected') ? 1 : 0; // Only rejected students are archived
                 
                 // Generate default password using SR code (student can change later)
-                $defaultPassword = password_hash($application['sr_code'], PASSWORD_DEFAULT);
+                $defaultPassword = !empty($application['registration_password_hash'])
+                    ? $application['registration_password_hash']
+                    : password_hash($application['sr_code'], PASSWORD_DEFAULT);
 
                 // Use existing name fields if available, otherwise split full_name
                 $firstName = $application['first_name'];

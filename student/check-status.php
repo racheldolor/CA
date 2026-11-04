@@ -188,14 +188,16 @@
         .back-link a {
             color: white;
             text-decoration: none;
-            padding: 0.5rem 1rem;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
+            display: inline-block;
+            padding: 0.75rem 1.25rem;
+            background: #ff5a5a;
+            border-radius: 8px;
+            font-weight: 600;
             transition: background 0.3s ease;
         }
 
         .back-link a:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: #ff3333;
         }
 
         @media (max-width: 768px) {
@@ -244,7 +246,7 @@
         </div>
         
         <div class="back-link">
-            <a href="../student/performer-profile-form.php">← Back to Application Form</a>
+            <a href="../index.php">← Back to Home</a>
         </div>
     </div>
 

@@ -4,9 +4,69 @@ ini_set('display_errors', 1);
 ?>
 
 <?php
+session_start();
 include("db_connect.php");
+require_once __DIR__ . '/../config/mail.php';
+require_once __DIR__ . '/../services/OtpService.php';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['otp_action'])) {
+    header('Content-Type: application/json');
+    try {
+        $otpPdo = getDBConnection();
+        $otpAction = $_POST['otp_action'];
+        $otpEmail = trim($_POST['email'] ?? '');
+        if ($otpAction === 'start') {
+            if (!filter_var($otpEmail, FILTER_VALIDATE_EMAIL) || !registrationEmailIsAllowed($otpEmail)) {
+                throw new RuntimeException('Use a valid BatStateU G-Suite email address.');
+            }
+            $duplicate = $otpPdo->prepare("SELECT email FROM users WHERE BINARY email = ? UNION SELECT email FROM student_artists WHERE BINARY email = ? UNION SELECT email FROM applications WHERE BINARY email = ? AND application_status NOT IN ('rejected') LIMIT 1");
+            $duplicate->execute([$otpEmail, $otpEmail, $otpEmail]);
+            if ($duplicate->fetch()) {
+                throw new RuntimeException('This email already has an account or pending application.');
+            }
+            $challenge = OtpService::issue($otpPdo, $otpEmail, 'registration');
+            $_SESSION['performer_otp_challenge'] = $challenge;
+            $_SESSION['performer_otp_email'] = $otpEmail;
+            echo json_encode(['success' => true, 'message' => 'Verification code sent.', 'expires_at' => $challenge['expires_at'], 'resend_at' => $challenge['resend_at'], 'resend_count' => 0]);
+            exit;
+        }
+        if ($otpAction === 'verify') {
+            $challenge = $_SESSION['performer_otp_challenge'] ?? null;
+            if (!$challenge || empty($_SESSION['performer_otp_email']) || strcasecmp($_SESSION['performer_otp_email'], $otpEmail) !== 0) {
+                throw new RuntimeException('Your verification request is no longer valid.');
+            }
+            OtpService::verify($otpPdo, (int)$challenge['id'], $challenge['token'], 'registration', trim($_POST['otp'] ?? ''));
+            $_SESSION['performer_email_verified'] = strtolower($otpEmail);
+            unset($_SESSION['performer_otp_challenge'], $_SESSION['performer_otp_email']);
+            echo json_encode(['success' => true, 'message' => 'Email verified.']);
+            exit;
+        }
+        if ($otpAction === 'resend') {
+            $challenge = $_SESSION['performer_otp_challenge'] ?? null;
+            if (!$challenge || empty($_SESSION['performer_otp_email']) || strcasecmp($_SESSION['performer_otp_email'], $otpEmail) !== 0) {
+                throw new RuntimeException('Your verification request is no longer valid.');
+            }
+            $newChallenge = OtpService::issue($otpPdo, $otpEmail, 'registration', null, null, (int)$challenge['id']);
+            $_SESSION['performer_otp_challenge'] = $newChallenge;
+            echo json_encode(['success' => true, 'message' => 'A new verification code was sent.', 'expires_at' => $newChallenge['expires_at'], 'resend_at' => $newChallenge['resend_at'], 'resend_count' => $newChallenge['resend_count'], 'locked_until' => $newChallenge['locked_until']]);
+            exit;
+        }
+        throw new RuntimeException('Invalid verification action.');
+    } catch (Throwable $exception) {
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => $exception->getMessage()]);
+        exit;
+    }
+}
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $submittedEmail = strtolower(trim($_POST['email'] ?? ''));
+    if (($_SESSION['performer_email_verified'] ?? '') !== $submittedEmail) {
+        header('Content-Type: application/json');
+        http_response_code(403);
+        echo json_encode(['success' => false, 'message' => 'Verify your email before submitting the application.']);
+        exit;
+    }
     // Log form submission for debugging
     error_log("Form submitted - POST data: " . print_r($_POST, true));
     
@@ -213,6 +273,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $affiliation_stmt->close();
             }
             
+            unset($_SESSION['performer_email_verified']);
             $response = ['success' => true, 'message' => 'Application submitted successfully', 'application_id' => $application_id];
         } else {
             $error_msg = $stmt->error;
@@ -409,6 +470,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             border: 2px solid #333;
             background: #fff;
             position: relative;
+
             flex-shrink: 0;
         }
 
@@ -1461,6 +1523,30 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             font-size: 1.2rem;
         }
     </style>
+    <style>
+        .otp-modal-backdrop { display:none; position:fixed; inset:0; z-index:2000; background:rgba(35,24,24,.72); align-items:center; justify-content:center; padding:1rem; }
+        .otp-modal-backdrop.is-open { display:flex; }
+        .otp-modal { width:100%; max-width:440px; background:#fff; border-radius:18px; overflow:hidden; box-shadow:0 24px 70px rgba(0,0,0,.3); animation:otpModalIn .22s ease-out; }
+        @keyframes otpModalIn { from { opacity:0; transform:translateY(16px) scale(.98); } to { opacity:1; transform:none; } }
+        .otp-modal-header { background:linear-gradient(135deg,#c93636,#ef6565); color:#fff; padding:1.35rem 1.5rem; }
+        .otp-modal-close { float:right; border:0; background:rgba(255,255,255,.18); color:#fff; width:30px; height:30px; border-radius:50%; font-size:1.35rem; line-height:1; cursor:pointer; }
+        .otp-modal-close:hover { background:rgba(255,255,255,.32); }
+        .otp-modal-header h2 { margin:0; font-size:1.3rem; }
+        .otp-modal-header p { margin:.35rem 0 0; font-size:.85rem; opacity:.9; }
+        .otp-modal-body { padding:1.5rem; }
+        .otp-modal-body p { color:#667085; font-size:.9rem; line-height:1.5; margin-top:0; }
+        .otp-modal-input { width:100%; box-sizing:border-box; border:2px solid #e1e5e9; border-radius:10px; padding:.9rem; text-align:center; font-size:1.5rem; letter-spacing:.55rem; color:#243047; outline:none; }
+        .otp-modal-input:focus { border-color:#c93636; box-shadow:0 0 0 3px rgba(201,54,54,.12); }
+        .otp-modal-status { min-height:1.3rem; margin:.65rem 0; font-size:.82rem; color:#c93636; }
+        .otp-modal-meta { display:flex; justify-content:space-between; gap:.75rem; color:#667085; font-size:.78rem; margin:.8rem 0 1.2rem; }
+        .otp-modal-actions { display:flex; gap:.7rem; }
+        .otp-modal-actions button { flex:1; border:0; border-radius:9px; padding:.8rem; font-weight:700; cursor:pointer; }
+        .otp-verify-btn { background:#c93636; color:#fff; }
+        .otp-resend-btn { background:#fff1f1; color:#a52d2d; border:1px solid #f1b6b6 !important; }
+        .otp-modal-actions button:disabled { opacity:.5; cursor:not-allowed; }
+        .otp-lock-message { background:#fff1f1; border:1px solid #f1b6b6; border-radius:9px; padding:.75rem; color:#8b1e1e; font-size:.85rem; line-height:1.45; }
+        @media (max-width:480px) { .otp-modal-body { padding:1.2rem; } .otp-modal-actions { flex-direction:column; } }
+    </style>
 </head>
 <body>
     <div class="performer-profile-container">
@@ -1822,15 +1908,126 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         <button type="submit" class="submit-btn">Submit Form</button>
                     </div>
                     
-                    <div class="secondary-actions">
-                        <button type="button" class="status-btn" onclick="viewApplicationStatus()">View Application Status</button>
-                    </div>
                 </form>
             </div>
         </div>
     </div>
 
+    <div class="otp-modal-backdrop" id="otpModalBackdrop" role="dialog" aria-modal="true" aria-labelledby="otpModalTitle">
+        <div class="otp-modal">
+            <div class="otp-modal-header"><button type="button" class="otp-modal-close" id="otpModalClose" aria-label="Close verification">&times;</button><h2 id="otpModalTitle">Verify your email</h2><p>OCA Notification System</p></div>
+            <div class="otp-modal-body">
+                <p>We sent a 6-digit code to <strong id="otpModalEmail"></strong>. Enter it below to submit your application.</p>
+                <input class="otp-modal-input" id="otpModalInput" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" aria-label="6-digit verification code">
+                <div class="otp-modal-status" id="otpModalStatus" role="status"></div>
+                <div class="otp-modal-meta"><span>Expires in <strong id="otpExpiry">5:00</strong></span><span>Resends <strong id="otpResendCount">0/5</strong></span></div>
+                <div class="otp-modal-actions"><button type="button" class="otp-verify-btn" id="otpVerifyButton">Verify code</button><button type="button" class="otp-resend-btn" id="otpResendButton" disabled>Resend in 60s</button></div>
+            </div>
+        </div>
+    </div>
+
     <script>
+        function showOtpModal(email, initialState, verifyOtp) {
+            const backdrop = document.getElementById('otpModalBackdrop');
+            const input = document.getElementById('otpModalInput');
+            const verifyButton = document.getElementById('otpVerifyButton');
+            const resendButton = document.getElementById('otpResendButton');
+            const closeButton = document.getElementById('otpModalClose');
+            const status = document.getElementById('otpModalStatus');
+            const expiry = document.getElementById('otpExpiry');
+            const resendCount = document.getElementById('otpResendCount');
+            document.getElementById('otpModalEmail').textContent = email;
+            backdrop.classList.add('is-open');
+            input.value = '';
+            input.focus();
+            let expiresAt = Number(initialState.expires_at) * 1000;
+            let resendAt = Number(initialState.resend_at) * 1000;
+            let count = Number(initialState.resend_count || 0);
+            let locked = false;
+            resendCount.textContent = count + '/5';
+
+            return new Promise((resolve) => {
+                let finished = false;
+                const close = (value) => {
+                    if (finished) return;
+                    finished = true;
+                    clearInterval(timer);
+                    backdrop.classList.remove('is-open');
+                    verifyButton.onclick = null;
+                    resendButton.onclick = null;
+                    closeButton.onclick = null;
+                    resolve(value);
+                };
+                const update = () => {
+                    const now = Date.now();
+                    const expirySeconds = Math.max(0, Math.ceil((expiresAt - now) / 1000));
+                    expiry.textContent = Math.floor(expirySeconds / 60) + ':' + String(expirySeconds % 60).padStart(2, '0');
+                    if (expirySeconds === 0 && !locked) {
+                        status.textContent = 'This code expired. Request a new code.';
+                        verifyButton.disabled = true;
+                    }
+                    const resendSeconds = Math.max(0, Math.ceil((resendAt - now) / 1000));
+                    resendButton.disabled = resendSeconds > 0 || locked || count >= 5;
+                    resendButton.textContent = resendSeconds > 0 ? 'Resend in ' + resendSeconds + 's' : (locked ? 'Resend locked' : 'Resend code');
+                };
+                const timer = setInterval(update, 1000);
+                update();
+                verifyButton.onclick = async () => {
+                    const value = input.value.trim();
+                    if (!/^\d{6}$/.test(value)) {
+                        status.textContent = 'Enter exactly 6 numbers.';
+                        input.focus();
+                        return;
+                    }
+                    verifyButton.disabled = true;
+                    resendButton.disabled = true;
+                    status.textContent = 'Checking code...';
+                    try {
+                        const result = await verifyOtp(value);
+                        if (!result.success) throw new Error(result.message || 'Incorrect code. Try again.');
+                        close(value);
+                    } catch (error) {
+                        status.textContent = error.message || 'Incorrect code. Try again.';
+                        input.value = '';
+                        input.focus();
+                        verifyButton.disabled = false;
+                        update();
+                    }
+                };
+                closeButton.onclick = () => close(null);
+                resendButton.onclick = async () => {
+                    resendButton.disabled = true;
+                    resendButton.textContent = 'Sending...';
+                    status.textContent = '';
+                    try {
+                        const request = new FormData();
+                        request.append('otp_action', 'resend');
+                        request.append('email', email);
+                        const response = await fetch('performer-profile-form.php', { method:'POST', body:request, headers:{'Accept':'application/json','X-Requested-With':'XMLHttpRequest'} });
+                        const result = await response.json();
+                        if (!response.ok || !result.success) throw new Error(result.message || 'Unable to resend the code.');
+                        expiresAt = Number(result.expires_at) * 1000;
+                        resendAt = Number(result.resend_at) * 1000;
+                        count = Number(result.resend_count || count + 1);
+                        resendCount.textContent = count + '/5';
+                        input.value = '';
+                        input.focus();
+                        if (result.locked_until) {
+                            locked = true;
+                            verifyButton.disabled = true;
+                            status.innerHTML = '<div class="otp-lock-message">Too many resend requests. This email is locked for 2 hours. You cannot continue until the lock expires.</div>';
+                        } else {
+                            status.textContent = 'A new code was sent.';
+                        }
+                        update();
+                    } catch (error) {
+                        status.textContent = error.message;
+                        update();
+                    }
+                };
+            });
+        }
+
         class PerformerProfileForm {
             constructor() {
                 console.log('PerformerProfileForm constructor called');
@@ -2581,7 +2778,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 }
                 
                 // Check if it's a BatStateU email
-                if (!email.toLowerCase().includes('batstate-u.edu.ph') && !email.toLowerCase().includes('g.batstate-u.edu.ph')) {
+                if (!/@g\.batstate-u\.edu\.ph$/i.test(email) && email.toLowerCase() !== 'spamdummy11@gmail.com') {
                     this.showFieldError(field, 'Please use your official BatStateU email address (@g.batstate-u.edu.ph).');
                     return false;
                 }
@@ -2966,6 +3163,37 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 
                 try {
                     let formData = this.collectFormData();
+
+                    const otpRequest = new FormData();
+                    otpRequest.append('otp_action', 'start');
+                    otpRequest.append('email', formData.get('email'));
+                    const otpStartResponse = await fetch('performer-profile-form.php', {
+                        method: 'POST',
+                        body: otpRequest,
+                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    const otpStartResult = await otpStartResponse.json();
+                    if (!otpStartResponse.ok || !otpStartResult.success) {
+                        this.showAlert(otpStartResult.message || 'Unable to send the verification code.', 'error');
+                        return;
+                    }
+
+                    const otp = await showOtpModal(formData.get('email'), otpStartResult, async (value) => {
+                        const otpVerify = new FormData();
+                        otpVerify.append('otp_action', 'verify');
+                        otpVerify.append('email', formData.get('email'));
+                        otpVerify.append('otp', value);
+                        const otpVerifyResponse = await fetch('performer-profile-form.php', {
+                            method: 'POST',
+                            body: otpVerify,
+                            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                        });
+                        return await otpVerifyResponse.json();
+                    });
+                    if (!otp) {
+                        this.showAlert('Email verification is required before submission.', 'error');
+                        return;
+                    }
 
                     // POST to backend
                     // Post to the same PHP handler in the current directory
