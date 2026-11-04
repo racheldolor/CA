@@ -615,7 +615,7 @@ $active_section = isset($_GET['section']) ? $_GET['section'] : 'events';
                     $archived_events = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
                     
                     // Archived inventory (if table exists)
-                    $tableExists = $pdo->query("SHOW TABLES LIKE 'inventory'")->rowCount() > 0;
+                    $tableExists = (bool)$pdo->query("SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = 'inventory'")->fetchColumn();
                     if ($tableExists) {
                         $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM inventory WHERE status = 'archived' AND $campusFilter");
                         $stmt->execute($campusParams);

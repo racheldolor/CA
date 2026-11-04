@@ -54,12 +54,12 @@ try {
             e.cultural_groups,
             ep.registration_date as joined_date,
             ep.attendance_status,
-            DATE_FORMAT(e.start_date, '%M %d, %Y') as formatted_start_date,
-            DATE_FORMAT(e.end_date, '%M %d, %Y') as formatted_end_date,
+            TO_CHAR(e.start_date, 'FMMonth DD, YYYY') as formatted_start_date,
+            TO_CHAR(e.end_date, 'FMMonth DD, YYYY') as formatted_end_date,
             CASE 
-                WHEN DATE(e.start_date) > CURDATE() THEN 'upcoming'
-                WHEN DATE(e.start_date) <= CURDATE() AND DATE(e.end_date) >= CURDATE() THEN 'ongoing'
-                WHEN DATE(e.end_date) < CURDATE() THEN 'completed'
+                WHEN e.start_date > CURRENT_DATE THEN 'upcoming'
+                WHEN e.start_date <= CURRENT_DATE AND e.end_date >= CURRENT_DATE THEN 'ongoing'
+                WHEN e.end_date < CURRENT_DATE THEN 'completed'
                 ELSE 'unknown'
             END as date_status,
             CASE 

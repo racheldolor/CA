@@ -111,16 +111,16 @@ try {
                 // Calculate currently borrowed quantity from active requests
                 $borrowedQtySQL = "
                     SELECT COALESCE(SUM(
-                        JSON_EXTRACT(br.approved_items, CONCAT('$[', json_idx.idx, '].quantity'))
+                        COALESCE((borrowed_item->>'quantity')::integer, 1)
                     ), 0) as total_borrowed
                     FROM borrowing_requests br
-                    CROSS JOIN (
-                        SELECT 0 as idx UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4
-                    ) json_idx
+                    CROSS JOIN LATERAL jsonb_array_elements(
+                        CASE WHEN LEFT(TRIM(COALESCE(br.approved_items, '')), 1) = '['
+                            THEN br.approved_items::jsonb ELSE '[]'::jsonb END
+                    ) AS borrowed_item
                     WHERE br.status = 'approved'
                     AND br.current_status IN ('active', 'pending_return')
-                    AND JSON_VALID(br.approved_items)
-                    AND JSON_EXTRACT(br.approved_items, CONCAT('$[', json_idx.idx, '].id')) = ?
+                    AND (borrowed_item->>'id')::integer = ?
                 ";
                 $borrowedStmt = $pdo->prepare($borrowedQtySQL);
                 $borrowedStmt->execute([$item_id]);

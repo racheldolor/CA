@@ -1,0 +1,149 @@
+{
+    "generated_at": "2026-11-04T16:56:31+00:00",
+    "tables": {
+        "users": {
+            "source_rows": 2,
+            "inserted_rows": 2,
+            "destination_rows_after": 2,
+            "status": "ok"
+        },
+        "student_artists": {
+            "source_rows": 2,
+            "inserted_rows": 2,
+            "destination_rows_after": 2,
+            "status": "ok"
+        },
+        "announcements": {
+            "source_rows": 0,
+            "inserted_rows": 0,
+            "destination_rows_after": 0,
+            "status": "ok"
+        },
+        "applications": {
+            "source_rows": 3,
+            "inserted_rows": 3,
+            "destination_rows_after": 3,
+            "status": "ok"
+        },
+        "application_affiliations": {
+            "source_rows": 4,
+            "inserted_rows": 4,
+            "destination_rows_after": 4,
+            "status": "ok"
+        },
+        "application_competition": {
+            "source_rows": 2,
+            "inserted_rows": 2,
+            "destination_rows_after": 2,
+            "status": "ok"
+        },
+        "application_participation": {
+            "source_rows": 4,
+            "inserted_rows": 4,
+            "destination_rows_after": 4,
+            "status": "ok"
+        },
+        "events": {
+            "source_rows": 0,
+            "inserted_rows": 0,
+            "destination_rows_after": 0,
+            "status": "ok"
+        },
+        "event_participants": {
+            "source_rows": 0,
+            "inserted_rows": 0,
+            "destination_rows_after": 0,
+            "status": "ok"
+        },
+        "event_evaluations": {
+            "source_rows": 0,
+            "inserted_rows": 0,
+            "destination_rows_after": 0,
+            "status": "ok"
+        },
+        "evaluation_summary": {
+            "source_rows": 0,
+            "inserted_rows": 0,
+            "destination_rows_after": 0,
+            "status": "ok"
+        },
+        "question_analysis": {
+            "source_rows": 0,
+            "inserted_rows": 0,
+            "destination_rows_after": 0,
+            "status": "ok"
+        },
+        "inventory": {
+            "source_rows": 0,
+            "inserted_rows": 0,
+            "destination_rows_after": 0,
+            "status": "ok"
+        },
+        "borrowing_requests": {
+            "source_rows": 0,
+            "inserted_rows": 0,
+            "destination_rows_after": 0,
+            "status": "ok"
+        },
+        "return_requests": {
+            "source_rows": 0,
+            "inserted_rows": 0,
+            "destination_rows_after": 0,
+            "status": "ok"
+        },
+        "repair_items": {
+            "source_rows": 0,
+            "inserted_rows": 0,
+            "destination_rows_after": 0,
+            "status": "ok"
+        },
+        "student_certificates": {
+            "source_rows": 0,
+            "inserted_rows": 0,
+            "destination_rows_after": 0,
+            "status": "ok"
+        },
+        "student_affiliation_records": {
+            "source_rows": 3,
+            "inserted_rows": 3,
+            "destination_rows_after": 3,
+            "status": "ok"
+        },
+        "student_competition_records": {
+            "source_rows": 2,
+            "inserted_rows": 2,
+            "destination_rows_after": 2,
+            "status": "ok"
+        },
+        "student_participation_records": {
+            "source_rows": 3,
+            "inserted_rows": 3,
+            "destination_rows_after": 3,
+            "status": "ok"
+        },
+        "deleted_students": {
+            "source_rows": 0,
+            "inserted_rows": 0,
+            "destination_rows_after": 0,
+            "status": "ok"
+        },
+        "system_settings": {
+            "source_rows": 0,
+            "inserted_rows": 0,
+            "destination_rows_after": 0,
+            "status": "ok"
+        },
+        "admin_logs": {
+            "source_rows": 5,
+            "inserted_rows": 5,
+            "destination_rows_after": 5,
+            "status": "ok"
+        },
+        "otp_challenges": {
+            "source_rows": 9,
+            "inserted_rows": 9,
+            "destination_rows_after": 9,
+            "status": "ok"
+        }
+    }
+}

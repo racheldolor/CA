@@ -23,8 +23,9 @@ try {
     
     // Check if campus column exists in events table
     try {
-        $checkColumn = $pdo->query("SHOW COLUMNS FROM events LIKE 'campus'");
-        $hasCampusColumn = $checkColumn->rowCount() > 0;
+        $checkColumn = $pdo->prepare("SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'events' AND column_name = 'campus'");
+        $checkColumn->execute();
+        $hasCampusColumn = (bool)$checkColumn->fetchColumn();
     } catch (Exception $e) {
         $hasCampusColumn = false;
     }
@@ -50,7 +51,7 @@ try {
         FROM events 
         WHERE status IN ('published', 'ongoing', 'draft') 
         AND status != 'archived'
-        AND start_date >= CURDATE()
+        AND start_date >= CURRENT_DATE
         " . $campusCondition . "
         ORDER BY start_date ASC, title ASC
         LIMIT $limit

@@ -31,7 +31,7 @@ try {
         SELECT a.*, 
                u.first_name, 
                u.last_name,
-               DATE_FORMAT(a.created_at, '%M %d, %Y at %h:%i %p') as formatted_created_at
+               TO_CHAR(a.created_at, 'FMMonth DD, YYYY at HH12:MI AM') as formatted_created_at
         FROM announcements a
         LEFT JOIN users u ON a.created_by = u.id
         WHERE a.is_active = 1

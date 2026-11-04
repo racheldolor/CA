@@ -36,7 +36,7 @@ try {
         AND (a.target_campus = 'all' OR a.target_campus = ? OR a.target_campus IS NULL)
         AND a.is_active = 1
         AND a.is_published = 1
-        AND (a.expiry_date IS NULL OR a.expiry_date >= CURDATE())
+        AND (a.expiry_date IS NULL OR a.expiry_date >= CURRENT_DATE)
         ORDER BY a.is_pinned DESC, a.created_at DESC
         LIMIT 20
     ");
@@ -54,8 +54,8 @@ try {
             CONCAT('New Event: ', title) as title,
             CONCAT(
                 'Event: ', title, '\n',
-                'Date: ', DATE_FORMAT(start_date, '%M %d, %Y'), 
-                CASE WHEN start_date != end_date THEN CONCAT(' - ', DATE_FORMAT(end_date, '%M %d, %Y')) ELSE '' END, '\n',
+                'Date: ', TO_CHAR(start_date, 'FMMonth DD, YYYY'),
+                CASE WHEN start_date != end_date THEN CONCAT(' - ', TO_CHAR(end_date, 'FMMonth DD, YYYY')) ELSE '' END, E'\\n',
                 'Location: ', location, '\n',
                 'Category: ', COALESCE(category, 'Event'), '\n\n',
                 description
@@ -66,7 +66,7 @@ try {
         FROM events
         WHERE (cultural_groups LIKE ? OR cultural_groups LIKE ? OR cultural_groups = '[]')
         AND (campus = ? OR campus IS NULL OR campus = '')
-        AND end_date >= CURDATE()
+        AND end_date >= CURRENT_DATE
         AND status IN ('published', 'ongoing')
         ORDER BY created_at DESC
         LIMIT 10

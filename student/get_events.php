@@ -29,8 +29,9 @@ try {
     
     // Check if campus column exists in events table, if not use venue
     try {
-        $checkColumn = $pdo->query("SHOW COLUMNS FROM events LIKE 'campus'");
-        $hasCampusColumn = $checkColumn->rowCount() > 0;
+        $checkColumn = $pdo->prepare("SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'events' AND column_name = 'campus'");
+        $checkColumn->execute();
+        $hasCampusColumn = (bool)$checkColumn->fetchColumn();
     } catch (Exception $e) {
         $hasCampusColumn = false;
     }
@@ -51,15 +52,15 @@ try {
                ep.registration_date as joined_at,
                ep.attendance_status,
                CASE 
-                   WHEN DATE(e.end_date) < CURDATE() THEN 'ended'
-                   WHEN DATE(e.start_date) <= CURDATE() AND DATE(e.end_date) >= CURDATE() THEN 'ongoing'
+                WHEN e.end_date < CURRENT_DATE THEN 'ended'
+                WHEN e.start_date <= CURRENT_DATE AND e.end_date >= CURRENT_DATE THEN 'ongoing'
                    ELSE 'upcoming'
                END as event_status
         FROM events e
         LEFT JOIN event_participants ep ON e.id = ep.event_id AND ep.student_id = ?
         WHERE (e.cultural_groups LIKE ? OR e.cultural_groups LIKE ? OR e.cultural_groups = '[]' OR e.cultural_groups IS NULL)
         $campusFilter
-        AND e.end_date >= CURDATE()
+        AND e.end_date >= CURRENT_DATE
         AND e.status IN ('published', 'ongoing')
         ORDER BY e.start_date ASC
         LIMIT 50

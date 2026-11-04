@@ -75,35 +75,6 @@ if (!in_array($input['condition'], ['good', 'worn-out', 'bad'])) {
 }
 
 try {
-    // Create inventory table if it doesn't exist
-    $createTableSQL = "
-        CREATE TABLE IF NOT EXISTS inventory (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            item_name VARCHAR(255) NOT NULL,
-            category ENUM('costume', 'equipment') NOT NULL,
-            quantity INT DEFAULT 0,
-            condition_status ENUM('good', 'worn-out', 'bad') NOT NULL,
-            status ENUM('available', 'borrowed', 'maintenance', 'archived') DEFAULT 'available',
-            description TEXT,
-            campus VARCHAR(100),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8
-    ";
-    $pdo->exec($createTableSQL);
-
-    // Check if quantity column exists, if not add it
-    $columns = $pdo->query("SHOW COLUMNS FROM inventory LIKE 'quantity'")->rowCount();
-    if ($columns == 0) {
-        $pdo->exec("ALTER TABLE inventory ADD COLUMN quantity INT DEFAULT 0 AFTER category");
-    }
-
-    // Check if campus column exists, if not add it
-    $columns = $pdo->query("SHOW COLUMNS FROM inventory LIKE 'campus'")->rowCount();
-    if ($columns == 0) {
-        $pdo->exec("ALTER TABLE inventory ADD COLUMN campus VARCHAR(100) AFTER description");
-    }
-
     // Check if editing existing item
     if (isset($input['id']) && !empty($input['id'])) {
         // Update existing item

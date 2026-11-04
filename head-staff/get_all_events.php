@@ -71,10 +71,10 @@ try {
     if (!empty($status_filter)) {
         if ($status_filter === 'active') {
             // Active events: published/ongoing AND not past their end date
-            $where_conditions[] = "status IN ('published', 'ongoing') AND end_date >= CURDATE()";
+            $where_conditions[] = "status IN ('published', 'ongoing') AND end_date >= CURRENT_DATE";
         } elseif ($status_filter === 'completed') {
             // Completed events: marked as completed OR past their end date
-            $where_conditions[] = "(status = 'completed' OR end_date < CURDATE())";
+            $where_conditions[] = "(status = 'completed' OR end_date < CURRENT_DATE)";
         } elseif ($status_filter === 'cancelled') {
             $where_conditions[] = "status = 'cancelled'";
         } else {
@@ -100,7 +100,7 @@ try {
     }
     
     if (!empty($month_filter)) {
-        $where_conditions[] = "DATE_FORMAT(start_date, '%Y-%m') = ?";
+        $where_conditions[] = "TO_CHAR(start_date, 'YYYY-MM') = ?";
         $params[] = $month_filter;
     }
     

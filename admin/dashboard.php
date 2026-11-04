@@ -335,7 +335,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     throw new Exception('Invalid table specified');
                 }
                 
-                $stmt = $pdo->prepare("SELECT * FROM `$source_table` WHERE id = ?");
+                $stmt = $pdo->prepare("SELECT * FROM \"$source_table\" WHERE id = ?");
                 $stmt->execute([$user_id]);
                 $user = $stmt->fetch(PDO::FETCH_ASSOC);
                 
@@ -457,21 +457,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 
                 // Update system settings in a settings table (create if doesn't exist)
                 try {
-                    // Try to create settings table if it doesn't exist
-                    $pdo->exec("
-                        CREATE TABLE IF NOT EXISTS system_settings (
-                            id INT PRIMARY KEY AUTO_INCREMENT,
-                            setting_key VARCHAR(100) UNIQUE NOT NULL,
-                            setting_value TEXT,
-                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-                        )
-                    ");
-                    
                     // Update or insert admin email
                     $stmt = $pdo->prepare("
                         INSERT INTO system_settings (setting_key, setting_value) 
                         VALUES ('admin_email', ?) 
-                        ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
+                        ON CONFLICT (setting_key) DO UPDATE SET setting_value = EXCLUDED.setting_value
                     ");
                     $stmt->execute([$admin_email]);
                     

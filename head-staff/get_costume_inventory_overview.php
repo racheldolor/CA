@@ -99,13 +99,15 @@ try {
         $borrowedCountSql = "
             SELECT COUNT(DISTINCT borrowed.item_id) as borrowed_count
             FROM (
-                SELECT DISTINCT JSON_EXTRACT(br.approved_items, CONCAT('$[', idx.n, '].id')) as item_id
+                SELECT DISTINCT (borrowed_item->>'id')::integer as item_id
                 FROM borrowing_requests br
-                CROSS JOIN (SELECT 0 as n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4) idx
+                CROSS JOIN LATERAL jsonb_array_elements(
+                    CASE WHEN LEFT(TRIM(COALESCE(br.approved_items, '')), 1) = '['
+                        THEN br.approved_items::jsonb ELSE '[]'::jsonb END
+                ) AS borrowed_item
                 WHERE br.status = 'approved'
                 AND br.current_status IN ('active', 'pending_return')
-                AND JSON_VALID(br.approved_items)
-                AND JSON_EXTRACT(br.approved_items, CONCAT('$[', idx.n, '].id')) IS NOT NULL
+                AND borrowed_item ? 'id'
             ) borrowed
             INNER JOIN inventory ON inventory.id = borrowed.item_id
             WHERE inventory.status != 'archived'
@@ -136,15 +138,17 @@ try {
             AND inventory.id NOT IN (
                 SELECT DISTINCT item_id_cast FROM (
                     SELECT 
-                        CAST(JSON_EXTRACT(br.approved_items, CONCAT('$[', idx.n, '].id')) AS UNSIGNED) as item_id_cast,
-                        SUM(JSON_EXTRACT(br.approved_items, CONCAT('$[', idx.n, '].quantity'))) as total_borrowed
+                        (borrowed_item->>'id')::integer as item_id_cast,
+                        SUM(COALESCE((borrowed_item->>'quantity')::integer, 1)) as total_borrowed
                     FROM borrowing_requests br
-                    CROSS JOIN (SELECT 0 as n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4) idx
+                    CROSS JOIN LATERAL jsonb_array_elements(
+                        CASE WHEN LEFT(TRIM(COALESCE(br.approved_items, '')), 1) = '['
+                            THEN br.approved_items::jsonb ELSE '[]'::jsonb END
+                    ) AS borrowed_item
                     WHERE br.status = 'approved'
                     AND br.current_status IN ('active', 'pending_return')
-                    AND JSON_VALID(br.approved_items)
-                    AND JSON_EXTRACT(br.approved_items, CONCAT('$[', idx.n, '].id')) IS NOT NULL
-                    GROUP BY CAST(JSON_EXTRACT(br.approved_items, CONCAT('$[', idx.n, '].id')) AS UNSIGNED)
+                    AND borrowed_item ? 'id'
+                    GROUP BY (borrowed_item->>'id')::integer
                 ) borrowed_summary
                 INNER JOIN inventory inv2 ON inv2.id = borrowed_summary.item_id_cast
                 WHERE borrowed_summary.total_borrowed >= inv2.quantity

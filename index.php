@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'], $_POST['pass
             $pdo = getDBConnection();
             
             // First, check the users table (for admin, head, director) - CASE-SENSITIVE
-            $stmt = $pdo->prepare("SELECT id, first_name, middle_name, last_name, email, password, role, status, campus FROM users WHERE BINARY email = ?");
+                $stmt = $pdo->prepare("SELECT id, first_name, middle_name, last_name, email, password, role, status, campus FROM users WHERE email = ?");
             $stmt->execute([$email]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
             
@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'], $_POST['pass
             
             // If not found in users table, check student_artists table - CASE-SENSITIVE
             if (!$user) {
-                $stmt = $pdo->prepare("SELECT id, first_name, middle_name, last_name, email, password, status, sr_code, campus FROM student_artists WHERE BINARY email = ?");
+                $stmt = $pdo->prepare("SELECT id, first_name, middle_name, last_name, email, password, status, sr_code, campus FROM student_artists WHERE email = ?");
                 $stmt->execute([$email]);
                 $student = $stmt->fetch(PDO::FETCH_ASSOC);
                 

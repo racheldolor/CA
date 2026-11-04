@@ -67,7 +67,7 @@ try {
 
 try {
     // Check if inventory table exists
-    $tableExists = $pdo->query("SHOW TABLES LIKE 'inventory'")->rowCount() > 0;
+    $tableExists = (bool)$pdo->query("SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = 'inventory'")->fetchColumn();
     
     if (!$tableExists) {
         ob_clean();
@@ -90,20 +90,16 @@ try {
         // Get total borrowed quantity for this item
         $borrowedQtySQL = "
             SELECT COALESCE(SUM(
-                CASE 
-                    WHEN JSON_VALID(br.approved_items) THEN
-                        JSON_EXTRACT(br.approved_items, CONCAT('$[', json_idx.idx, '].quantity'))
-                    ELSE 1
-                END
+                COALESCE((borrowed_item->>'quantity')::integer, 1)
             ), 0) as total_borrowed
             FROM borrowing_requests br
-            CROSS JOIN (
-                SELECT 0 as idx UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4
-            ) json_idx
+            CROSS JOIN LATERAL jsonb_array_elements(
+                CASE WHEN LEFT(TRIM(COALESCE(br.approved_items, '')), 1) = '['
+                    THEN br.approved_items::jsonb ELSE '[]'::jsonb END
+            ) AS borrowed_item
             WHERE br.status = 'approved'
             AND br.current_status IN ('active', 'pending_return')
-            AND JSON_VALID(br.approved_items)
-            AND JSON_EXTRACT(br.approved_items, CONCAT('$[', json_idx.idx, '].id')) = ?
+            AND (borrowed_item->>'id')::integer = ?
         ";
         $borrowedQtyStmt = $pdo->prepare($borrowedQtySQL);
         $borrowedQtyStmt->execute([$costume['id']]);
@@ -131,7 +127,14 @@ try {
             FROM borrowing_requests br
             WHERE br.status = 'approved'
                 AND br.current_status IN ('active', 'pending_return')
-                AND JSON_SEARCH(br.approved_items, 'one', ?, NULL, '$[*].id') IS NOT NULL
+                AND EXISTS (
+                    SELECT 1
+                    FROM jsonb_array_elements(
+                        CASE WHEN LEFT(TRIM(COALESCE(br.approved_items, '')), 1) = '['
+                            THEN br.approved_items::jsonb ELSE '[]'::jsonb END
+                    ) AS borrower_item
+                    WHERE borrower_item->>'id' = CAST(? AS text)
+                )
             ORDER BY br.dates_of_use DESC
         ";
         $borrowersStmt = $pdo->prepare($borrowersSQL);
@@ -158,20 +161,16 @@ try {
         // Get total borrowed quantity for this item
         $borrowedQtySQL = "
             SELECT COALESCE(SUM(
-                CASE 
-                    WHEN JSON_VALID(br.approved_items) THEN
-                        JSON_EXTRACT(br.approved_items, CONCAT('$[', json_idx.idx, '].quantity'))
-                    ELSE 1
-                END
+                COALESCE((borrowed_item->>'quantity')::integer, 1)
             ), 0) as total_borrowed
             FROM borrowing_requests br
-            CROSS JOIN (
-                SELECT 0 as idx UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4
-            ) json_idx
+            CROSS JOIN LATERAL jsonb_array_elements(
+                CASE WHEN LEFT(TRIM(COALESCE(br.approved_items, '')), 1) = '['
+                    THEN br.approved_items::jsonb ELSE '[]'::jsonb END
+            ) AS borrowed_item
             WHERE br.status = 'approved'
             AND br.current_status IN ('active', 'pending_return')
-            AND JSON_VALID(br.approved_items)
-            AND JSON_EXTRACT(br.approved_items, CONCAT('$[', json_idx.idx, '].id')) = ?
+            AND (borrowed_item->>'id')::integer = ?
         ";
         $borrowedQtyStmt = $pdo->prepare($borrowedQtySQL);
         $borrowedQtyStmt->execute([$item['id']]);
@@ -199,7 +198,14 @@ try {
             FROM borrowing_requests br
             WHERE br.status = 'approved'
                 AND br.current_status IN ('active', 'pending_return')
-                AND JSON_SEARCH(br.approved_items, 'one', ?, NULL, '$[*].id') IS NOT NULL
+                AND EXISTS (
+                    SELECT 1
+                    FROM jsonb_array_elements(
+                        CASE WHEN LEFT(TRIM(COALESCE(br.approved_items, '')), 1) = '['
+                            THEN br.approved_items::jsonb ELSE '[]'::jsonb END
+                    ) AS borrower_item
+                    WHERE borrower_item->>'id' = CAST(? AS text)
+                )
             ORDER BY br.dates_of_use DESC
         ";
         $borrowersStmt = $pdo->prepare($borrowersSQL);

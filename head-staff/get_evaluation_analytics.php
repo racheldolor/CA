@@ -51,7 +51,7 @@ try {
     // Get all available events (with or without evaluations) with campus filtering
     $eventsQuery = "SELECT ev.id, ev.title, ev.location, ev.category, 
                     ev.start_date as event_date, ev.start_date,
-                    DATE_FORMAT(ev.start_date, '%M %d, %Y') as formatted_date,
+                    TO_CHAR(ev.start_date, 'FMMonth DD, YYYY') as formatted_date,
                     COUNT(e.id) as evaluation_count
                     FROM events ev
                     LEFT JOIN event_evaluations e ON ev.id = e.event_id";

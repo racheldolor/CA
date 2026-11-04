@@ -122,7 +122,7 @@ try {
     $cultural_groups = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
     
     // Count scheduled events (future events that are not yet completed) with campus filtering
-    $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM events WHERE start_date >= CURDATE() AND " . $campusFilter);
+    $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM events WHERE start_date >= CURRENT_DATE AND " . $campusFilter);
     $stmt->execute($campusParams);
     $scheduled_events = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
     
@@ -177,11 +177,11 @@ try {
     $offset = ($current_page - 1) * $students_per_page;
     
     // Get paginated students - try with cultural_group column first
-    try {
         $sql = "SELECT id, sr_code, first_name, middle_name, last_name, email, campus, program, year_level, cultural_group, status, created_at 
-                FROM student_artists $where_clause 
-                ORDER BY id ASC 
-                LIMIT $students_per_page OFFSET $offset";
+            FROM student_artists $where_clause
+            ORDER BY id ASC
+            LIMIT $students_per_page OFFSET $offset";
+    try {
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $students = $stmt->fetchAll(PDO::FETCH_ASSOC);

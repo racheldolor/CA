@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!registrationPasswordIsValid($password)) {
                     throw new RuntimeException('Password must be at least 8 characters and include upper, lower, number, and special characters.');
                 }
-                $stmt = $pdo->prepare("SELECT email FROM users WHERE BINARY email = ? UNION SELECT email FROM student_artists WHERE BINARY email = ? UNION SELECT email FROM applications WHERE BINARY email = ? AND application_status NOT IN ('rejected') LIMIT 1");
+                $stmt = $pdo->prepare("SELECT email FROM users WHERE email = ? UNION SELECT email FROM student_artists WHERE email = ? UNION SELECT email FROM applications WHERE email = ? AND application_status NOT IN ('rejected') LIMIT 1");
                 $stmt->execute([$registration['email'], $registration['email'], $registration['email']]);
                 if ($stmt->fetch()) {
                     throw new RuntimeException('This email already has an account or pending application.');

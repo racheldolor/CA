@@ -54,7 +54,7 @@ try {
     }
     
     // Check if inventory table exists
-    $tableExists = $pdo->query("SHOW TABLES LIKE 'inventory'")->rowCount() > 0;
+    $tableExists = (bool)$pdo->query("SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = 'inventory'")->fetchColumn();
     
     if (!$tableExists) {
         echo json_encode(['success' => false, 'message' => 'Inventory table does not exist']);
@@ -94,30 +94,18 @@ try {
     }
     
     // Check if status column exists and has 'archived' option
-    $stmt = $pdo->query("SHOW COLUMNS FROM inventory LIKE 'status'");
-    $status_column = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt = $pdo->prepare("SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'inventory' AND column_name = 'status'");
+    $stmt->execute();
+    $status_column = $stmt->fetchColumn();
     
     if (!$status_column) {
         // Status column doesn't exist, add it
         try {
-            $pdo->exec("ALTER TABLE inventory ADD COLUMN status ENUM('available','borrowed','maintenance','reserved','retired','archived') DEFAULT 'available' AFTER quantity");
+            $pdo->exec("ALTER TABLE inventory ADD COLUMN status varchar(20) DEFAULT 'available'");
         } catch (Exception $alter_e) {
             error_log("Error adding status column: " . $alter_e->getMessage());
             echo json_encode(['success' => false, 'message' => 'Database error: Could not add status column']);
             exit;
-        }
-    } else {
-        // Check if 'archived' is in the enum values
-        $type = $status_column['Type'];
-        if (strpos($type, "'archived'") === false) {
-            // Add 'archived' to the enum
-            try {
-                $pdo->exec("ALTER TABLE inventory MODIFY COLUMN status ENUM('available','borrowed','maintenance','reserved','retired','archived') DEFAULT 'available'");
-            } catch (Exception $alter_e) {
-                error_log("Error modifying status column: " . $alter_e->getMessage());
-                echo json_encode(['success' => false, 'message' => 'Database error: Could not update status column']);
-                exit;
-            }
         }
     }
     

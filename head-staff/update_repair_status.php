@@ -81,17 +81,19 @@ try {
                     SELECT id, student_id, approved_items 
                     FROM borrowing_requests 
                     WHERE current_status IN ('active', 'pending_return')
-                    AND (
-                        JSON_SEARCH(approved_items, 'one', ?, NULL, '$[*].id') IS NOT NULL
-                        OR JSON_SEARCH(approved_items, 'one', ?, NULL, '$[*].item_id') IS NOT NULL
-                        OR approved_items LIKE ?
+                    AND EXISTS (
+                        SELECT 1
+                        FROM jsonb_array_elements(
+                            CASE WHEN LEFT(TRIM(COALESCE(approved_items, '')), 1) = '['
+                                THEN approved_items::jsonb ELSE '[]'::jsonb END
+                        ) AS approved_item
+                        WHERE approved_item->>'id' = CAST(? AS text)
+                           OR approved_item->>'item_id' = CAST(? AS text)
                     )
                 ");
-                $item_like_pattern = '%"' . $repair_item['item_id'] . '"%';
                 $stmt->execute([
                     $repair_item['item_id'], 
-                    $repair_item['item_id'],
-                    $item_like_pattern
+                    $repair_item['item_id']
                 ]);
                 $borrowing_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 

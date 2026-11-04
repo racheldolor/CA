@@ -2,9 +2,14 @@
 session_start();
 header('Content-Type: application/json');
 
-// Enable error reporting for debugging
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', 0);
+error_reporting(0);
+
+if (!isset($_SESSION['logged_in']) || !in_array($_SESSION['user_role'] ?? '', ['head', 'admin', 'director'], true)) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+    exit;
+}
 
 // RBAC: Determine access level
 $user_role = $_SESSION['user_role'] ?? '';
@@ -34,7 +39,7 @@ try {
     $costumeQuery = "SELECT 
                         id, 
                         item_name as name, 
-                        condition_status as `condition`, 
+                        condition_status AS \"condition\",
                         status,
                         'costume' as type
                      FROM inventory 
@@ -43,7 +48,7 @@ try {
     $equipmentQuery = "SELECT 
                          id, 
                          item_name as name, 
-                         condition_status as `condition`, 
+                         condition_status AS \"condition\",
                          status,
                          'equipment' as type
                        FROM inventory 

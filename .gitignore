@@ -46,6 +46,8 @@ access_log
 # Configuration files with sensitive data (if any)
 # config/secrets.php
 config/secrets.php
+database/supabase_data.sql
+database/supabase_data_counts.json
 vendor/
 composer.phar
 .env

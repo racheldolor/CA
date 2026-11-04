@@ -64,7 +64,7 @@ try {
             $stmt = $pdo->prepare("
                 INSERT INTO event_participants (event_id, student_id, attendance_status, registration_date) 
                 VALUES (?, ?, 'registered', CURRENT_TIMESTAMP)
-                ON DUPLICATE KEY UPDATE 
+                ON CONFLICT (event_id, student_id) DO UPDATE SET
                 attendance_status = 'registered', 
                 registration_date = CURRENT_TIMESTAMP,
                 updated_at = CURRENT_TIMESTAMP

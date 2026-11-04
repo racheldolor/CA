@@ -30,7 +30,7 @@ final class OtpService
                 throw new RuntimeException('Too many resend requests. Please wait 2 hours before trying again.');
             }
             if ((int)$existing['resend_count'] >= self::MAX_RESENDS) {
-                $pdo->prepare('UPDATE otp_challenges SET resend_locked_until = FROM_UNIXTIME(?) WHERE id = ?')->execute([$now + self::RESEND_LOCK_SECONDS, $existingChallengeId]);
+                $pdo->prepare('UPDATE otp_challenges SET resend_locked_until = to_timestamp(?) WHERE id = ?')->execute([$now + self::RESEND_LOCK_SECONDS, $existingChallengeId]);
                 throw new RuntimeException('Too many resend requests. Please wait 2 hours before trying again.');
             }
         }
@@ -46,7 +46,7 @@ final class OtpService
             $resendCount = (int)$existing['resend_count'] + 1;
         }
         $lockedUntil = $resendCount >= self::MAX_RESENDS ? $now + self::RESEND_LOCK_SECONDS : null;
-        $stmt = $pdo->prepare('INSERT INTO otp_challenges (purpose, email, account_table, account_id, challenge_token_hash, otp_hash, expires_at, resend_available_at, resend_count, resend_locked_until, ip_address) VALUES (?, ?, ?, ?, ?, ?, FROM_UNIXTIME(?), FROM_UNIXTIME(?), ?, FROM_UNIXTIME(?), ?)');
+        $stmt = $pdo->prepare('INSERT INTO otp_challenges (purpose, email, account_table, account_id, challenge_token_hash, otp_hash, expires_at, resend_available_at, resend_count, resend_locked_until, ip_address) VALUES (?, ?, ?, ?, ?, ?, to_timestamp(?), to_timestamp(?), ?, to_timestamp(?), ?) RETURNING id');
         $stmt->execute([
             $purpose,
             $email,
@@ -62,7 +62,7 @@ final class OtpService
         ]);
 
         return [
-            'id' => (int)$pdo->lastInsertId(),
+            'id' => (int)$stmt->fetchColumn(),
             'token' => $challengeToken,
             'expires_at' => $now + self::TTL,
             'resend_at' => $now + self::RESEND_COOLDOWN,

@@ -1,5 +1,16 @@
 <?php
 // Archive Events Section
+require_once __DIR__ . '/../config/database.php';
+
+$pdo = $pdo ?? getDBConnection();
+$campusFilter = $campusFilter ?? '1=1';
+$campusParams = $campusParams ?? [];
+$items_per_page = $items_per_page ?? 10;
+$current_page = $current_page ?? 1;
+$offset = $offset ?? (($current_page - 1) * $items_per_page);
+$search = $search ?? '';
+$canManage = $canManage ?? false;
+
 try {
     // Build WHERE conditions - only add campusFilter if it's not '1=1' (which means show all)
     $where_conditions = ["status = 'archived'"];
@@ -23,7 +34,7 @@ try {
     // Date filter
     if (isset($_GET['days']) && is_numeric($_GET['days'])) {
         $days = intval($_GET['days']);
-        $where_conditions[] = "updated_at >= DATE_SUB(NOW(), INTERVAL ? DAY)";
+        $where_conditions[] = "updated_at >= CURRENT_TIMESTAMP - (? * INTERVAL '1 day')";
         $params[] = $days;
     }
     

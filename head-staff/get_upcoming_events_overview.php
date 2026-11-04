@@ -43,8 +43,8 @@ try {
             COUNT(ep.student_id) as registered_count
         FROM events e
         LEFT JOIN event_participants ep ON e.id = ep.event_id
-        WHERE e.start_date >= CURDATE() 
-        AND e.start_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+        WHERE e.start_date >= CURRENT_DATE
+        AND e.start_date <= CURRENT_DATE + INTERVAL '30 days'
         " . $campusFilter . "
         GROUP BY e.id, e.title, e.start_date, e.end_date, e.location, e.category, e.cultural_groups, e.campus
         ORDER BY e.start_date ASC
@@ -64,12 +64,12 @@ try {
     $statsSql = "
         SELECT 
             COUNT(*) as total_upcoming,
-            COUNT(CASE WHEN e.start_date <= DATE_ADD(CURDATE(), INTERVAL 7 DAY) THEN 1 END) as this_week,
+            COUNT(CASE WHEN e.start_date <= CURRENT_DATE + INTERVAL '7 days' THEN 1 END) as this_week,
             COUNT(CASE WHEN e.category = 'training' THEN 1 END) as trainings,
             COUNT(CASE WHEN e.category = 'performance' THEN 1 END) as performances
         FROM events e
-        WHERE e.start_date >= CURDATE() 
-        AND e.start_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+        WHERE e.start_date >= CURRENT_DATE
+        AND e.start_date <= CURRENT_DATE + INTERVAL '30 days'
         " . $campusFilter . "
     ";
     $statsStmt = $pdo->prepare($statsSql);
@@ -83,7 +83,7 @@ try {
             COUNT(ep.student_id) as new_registrations
         FROM events e
         INNER JOIN event_participants ep ON e.id = ep.event_id
-        WHERE e.start_date >= CURDATE()
+        WHERE e.start_date >= CURRENT_DATE
         " . $campusFilter . "
         GROUP BY e.id, e.title
         HAVING COUNT(ep.student_id) > 0

@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once '../student/db_connect.php';
+require_once '../config/database.php';
 
 // Check if user is logged in and is admin
 if (!isset($_SESSION['admin_logged_in']) || !$_SESSION['admin_logged_in']) {
@@ -10,19 +10,19 @@ if (!isset($_SESSION['admin_logged_in']) || !$_SESSION['admin_logged_in']) {
 }
 
 try {
+    $pdo = getDBConnection();
     // First, get all approved applications
-    $stmt = $conn->prepare("
+    $stmt = $pdo->prepare("
         SELECT a.id, a.sr_code, a.first_name, a.middle_name, a.last_name, a.full_name, a.email, a.application_status, 
                a.approved_at, a.reviewed_by,
-               IFNULL(CONCAT(reviewer.first_name, ' ', reviewer.last_name), 'Unknown') as reviewer_name
+               COALESCE(CONCAT(reviewer.first_name, ' ', reviewer.last_name), 'Unknown') as reviewer_name
         FROM applications a
         LEFT JOIN users reviewer ON a.reviewed_by = reviewer.id
         WHERE a.application_status = 'approved'
         ORDER BY a.approved_at DESC
     ");
     $stmt->execute();
-    $result = $stmt->get_result();
-    $allApproved = $result->fetch_all(MYSQLI_ASSOC);
+    $allApproved = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     $applications = [];
     
@@ -32,25 +32,19 @@ try {
         $sr_code = $app['sr_code'];
         
         // Check if user exists in users table
-        $userCheck = $conn->prepare("SELECT id FROM users WHERE email = ?");
-        $userCheck->bind_param("s", $email);
-        $userCheck->execute();
-        $userExists = $userCheck->get_result()->num_rows > 0;
-        $userCheck->close();
+        $userCheck = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+        $userCheck->execute([$email]);
+        $userExists = (bool)$userCheck->fetchColumn();
         
         // Check if user exists in student_artists table
-        $artistCheck = $conn->prepare("SELECT id FROM student_artists WHERE email = ? OR sr_code = ?");
-        $artistCheck->bind_param("ss", $email, $sr_code);
-        $artistCheck->execute();
-        $artistExists = $artistCheck->get_result()->num_rows > 0;
-        $artistCheck->close();
+        $artistCheck = $pdo->prepare("SELECT id FROM student_artists WHERE email = ? OR sr_code = ?");
+        $artistCheck->execute([$email, $sr_code]);
+        $artistExists = (bool)$artistCheck->fetchColumn();
         
         // Check if user was deleted by admin
-        $deletedCheck = $conn->prepare("SELECT id FROM deleted_students WHERE email = ? OR sr_code = ?");
-        $deletedCheck->bind_param("ss", $email, $sr_code);
-        $deletedCheck->execute();
-        $wasDeleted = $deletedCheck->get_result()->num_rows > 0;
-        $deletedCheck->close();
+        $deletedCheck = $pdo->prepare("SELECT id FROM deleted_students WHERE email = ? OR sr_code = ?");
+        $deletedCheck->execute([$email, $sr_code]);
+        $wasDeleted = (bool)$deletedCheck->fetchColumn();
         
         // If no account exists in any table and was not deleted, add to results
         if (!$userExists && !$artistExists && !$wasDeleted) {

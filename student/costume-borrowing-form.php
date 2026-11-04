@@ -41,30 +41,6 @@ try {
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        // Create borrowing_requests table if it doesn't exist
-        $createTableSQL = "
-            CREATE TABLE IF NOT EXISTS borrowing_requests (
-                id INT PRIMARY KEY AUTO_INCREMENT,
-                student_id INT NOT NULL,
-                campus VARCHAR(100),
-                requester_name VARCHAR(200),
-                college_office VARCHAR(200),
-                contact_number VARCHAR(20),
-                email VARCHAR(100),
-                address TEXT,
-                equipment_categories JSON,
-                date_of_request DATE,
-                dates_of_use TEXT,
-                times_of_use TEXT,
-                estimated_return_date DATE,
-                purpose TEXT,
-                status ENUM('pending', 'approved', 'rejected', 'returned') DEFAULT 'pending',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-            )
-        ";
-        $pdo->exec($createTableSQL);
-
         // Get form data
         $campus = trim($_POST['campus'] ?? '');
         $requester_name = trim($_POST['requester_name'] ?? '');
@@ -142,11 +118,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             // Create a general placeholder item if no inventory items exist
             $placeholder_stmt = $pdo->prepare("
-                INSERT IGNORE INTO inventory (item_name, category, quantity, status) 
-                VALUES ('General Equipment Request', 'General', 1, 'available')
+                INSERT INTO inventory (item_name, category, quantity, available_quantity, status)
+                VALUES ('General Equipment Request', 'General', 1, 1, 'available')
+                RETURNING id
             ");
             $placeholder_stmt->execute();
-            $default_item_id = $pdo->lastInsertId() ?: 1;
+            $default_item_id = $placeholder_stmt->fetchColumn() ?: 1;
         }
         
         $stmt = $pdo->prepare("

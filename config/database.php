@@ -1,85 +1,95 @@
 <?php
 /**
- * Database Configuration
- * 
- * IMPORTANT: Update these constants based on your hosting environment:
- * 
- * For localhost/XAMPP:
- *   DB_HOST = 'localhost'
- *   DB_USER = 'root'
- *   DB_PASS = ''
- * 
- * For shared hosting (e.g., cPanel, Hostinger, etc.):
- *   DB_HOST = 'localhost' or your hosting provider's database server
- *   DB_USER = your database username from hosting control panel
- *   DB_PASS = your database password from hosting control panel
- * 
- * For cloud hosting (e.g., AWS RDS, DigitalOcean):
- *   DB_HOST = database endpoint/IP address (e.g., 'mydb.abc123.us-east-1.rds.amazonaws.com')
- *   DB_USER = your database username
- *   DB_PASS = your database password
- * 
- * For remote database servers:
- *   DB_HOST = IP address or domain name of your database server
- *   DB_USER = your database username
- *   DB_PASS = your database password
+ * Centralized Supabase PostgreSQL connection.
  */
 
-// Database connection constants
-define('DB_HOST', 'localhost');  // Change to your database host
-define('DB_NAME', 'capstone_culture_arts');
-define('DB_USER', 'root');       // Change to your MySQL username
-define('DB_PASS', '');           // Change to your MySQL password
-
-// Create database connection
-function getDBConnection(): \PDO {
-    try {
-        $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4";
-        $pdo = new PDO($dsn, DB_USER, DB_PASS);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        return $pdo;
-    } catch (PDOException $e) {
-        die("Database connection failed: " . $e->getMessage());
+function loadEnvironmentFile(string $path): void
+{
+    if (!is_file($path)) {
+        return;
     }
-}
 
-// Function to log admin actions
-function logAdminAction(\PDO $pdo, int $admin_id, string $action, ?int $target_user_id = null, ?string $details = null): void {
-    try {
-        // Check if we're in a transaction and save the state
-        $inTransaction = $pdo->inTransaction();
-        
-        // If we're in a transaction, we'll defer the table creation
-        // and just try to insert first
-        $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-        
-        try {
-            $stmt = $pdo->prepare("INSERT INTO admin_logs (admin_id, action, target_user_id, details, ip_address) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$admin_id, $action, $target_user_id, $details, $ip_address]);
-        } catch (Exception $e) {
-            // If insert fails and we're not in a transaction, try to create table
-            if (!$inTransaction && strpos($e->getMessage(), "doesn't exist") !== false) {
-                $pdo->exec("CREATE TABLE IF NOT EXISTS admin_logs (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    admin_id INT,
-                    action VARCHAR(100),
-                    target_user_id INT,
-                    details TEXT,
-                    ip_address VARCHAR(45),
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )");
-                
-                // Try insert again
-                $stmt = $pdo->prepare("INSERT INTO admin_logs (admin_id, action, target_user_id, details, ip_address) VALUES (?, ?, ?, ?, ?)");
-                $stmt->execute([$admin_id, $action, $target_user_id, $details, $ip_address]);
-            } else {
-                throw $e;
-            }
+    foreach (file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+        $line = trim($line);
+        if ($line === '' || str_starts_with($line, '#') || !str_contains($line, '=')) {
+            continue;
         }
-    } catch (Exception $e) {
-        // Log to error log if database logging fails
-        error_log("Admin action logging failed: " . $e->getMessage());
+
+        [$name, $value] = explode('=', $line, 2);
+        $name = trim($name);
+        $value = trim($value);
+        if ($value !== '' && (($value[0] ?? '') === '"' || ($value[0] ?? '') === "'")) {
+            $value = trim($value, "\"'");
+        }
+
+        if ($name !== '' && getenv($name) === false) {
+            putenv($name . '=' . $value);
+            $_ENV[$name] = $value;
+        }
     }
 }
-?>
+
+loadEnvironmentFile(dirname(__DIR__) . '/.env');
+
+define('DB_CONNECTION', getenv('DB_CONNECTION') ?: 'pgsql');
+define('DB_HOST', getenv('DB_HOST') ?: 'db.zxjvyaogmjwgeubghomx.supabase.co');
+define('DB_PORT', (int)(getenv('DB_PORT') ?: 5432));
+define('DB_NAME', getenv('DB_DATABASE') ?: 'postgres');
+define('DB_USER', getenv('DB_USERNAME') ?: 'postgres');
+define('DB_PASS', getenv('DB_PASSWORD') ?: (getenv('SUPABASE_PASS') ?: ''));
+define('DB_SSLMODE', getenv('DB_SSLMODE') ?: 'require');
+
+function getDBConnection(): \PDO
+{
+    static $connection;
+
+    if ($connection instanceof PDO) {
+        return $connection;
+    }
+
+    if (DB_CONNECTION !== 'pgsql') {
+        throw new RuntimeException('Only the PostgreSQL database connection is supported.');
+    }
+
+    if (DB_PASS === '') {
+        throw new RuntimeException('DB_PASSWORD or SUPABASE_PASS is not configured.');
+    }
+
+    $dsn = sprintf(
+        'pgsql:host=%s;port=%d;dbname=%s;sslmode=%s;connect_timeout=10',
+        DB_HOST,
+        DB_PORT,
+        DB_NAME,
+        DB_SSLMODE
+    );
+
+    try {
+        $connection = new PDO($dsn, DB_USER, DB_PASS, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false,
+        ]);
+        return $connection;
+    } catch (PDOException $e) {
+        error_log('Database connection failed: ' . $e->getMessage());
+        throw new RuntimeException('Database connection failed.', 0, $e);
+    }
+}
+
+function logAdminAction(PDO $pdo, int $admin_id, string $action, ?int $target_user_id = null, ?string $details = null): void
+{
+    try {
+        $stmt = $pdo->prepare(
+            'INSERT INTO admin_logs (admin_id, action, target_user_id, details, ip_address) VALUES (?, ?, ?, ?, ?)'
+        );
+        $stmt->execute([
+            $admin_id,
+            $action,
+            $target_user_id,
+            $details,
+            $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+        ]);
+    } catch (Throwable $e) {
+        error_log('Admin action logging failed: ' . $e->getMessage());
+    }
+}

@@ -1,8 +1,19 @@
 <?php
 // Archive Inventory Section
+require_once __DIR__ . '/../config/database.php';
+
+$pdo = $pdo ?? getDBConnection();
+$campusFilter = $campusFilter ?? '1=1';
+$campusParams = $campusParams ?? [];
+$items_per_page = $items_per_page ?? 10;
+$current_page = $current_page ?? 1;
+$offset = $offset ?? (($current_page - 1) * $items_per_page);
+$search = $search ?? '';
+$canManage = $canManage ?? false;
+
 try {
     // Check if inventory table exists
-    $tableExists = $pdo->query("SHOW TABLES LIKE 'inventory'")->rowCount() > 0;
+    $tableExists = (bool)$pdo->query("SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = 'inventory'")->fetchColumn();
     
     if (!$tableExists) {
         echo '<div class="empty-state">
@@ -27,7 +38,7 @@ try {
         // Date filter
         if (isset($_GET['days']) && is_numeric($_GET['days'])) {
             $days = intval($_GET['days']);
-            $where_conditions[] = "updated_at >= DATE_SUB(NOW(), INTERVAL ? DAY)";
+            $where_conditions[] = "updated_at >= CURRENT_TIMESTAMP - (? * INTERVAL '1 day')";
             $params[] = $days;
         }
         

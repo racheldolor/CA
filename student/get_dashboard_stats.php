@@ -46,9 +46,9 @@ try {
             SELECT COUNT(*) as count 
             FROM events 
             WHERE status IN ('published', 'ongoing', 'draft')
-            AND start_date >= CURDATE() 
-            AND MONTH(start_date) = MONTH(CURDATE()) 
-            AND YEAR(start_date) = YEAR(CURDATE())
+            AND start_date >= CURRENT_DATE
+            AND EXTRACT(MONTH FROM start_date) = EXTRACT(MONTH FROM CURRENT_DATE)
+            AND EXTRACT(YEAR FROM start_date) = EXTRACT(YEAR FROM CURRENT_DATE)
             AND (cultural_groups LIKE ? OR cultural_groups LIKE ? OR cultural_groups = '[]')
             AND (venue = ? OR venue IS NULL OR venue = '')
         ");
@@ -113,7 +113,7 @@ try {
             AND (a.target_campus = 'all' OR a.target_campus = ? OR a.target_campus IS NULL)
             AND a.is_active = 1
             AND a.is_published = 1
-            AND (a.expiry_date IS NULL OR a.expiry_date >= CURDATE())
+            AND (a.expiry_date IS NULL OR a.expiry_date >= CURRENT_DATE)
         ");
         
         $announcementsStmt->execute([$groupPattern1, $groupPattern2, $studentCampus]);
@@ -125,7 +125,7 @@ try {
             FROM events
             WHERE (cultural_groups LIKE ? OR cultural_groups LIKE ? OR cultural_groups = '[]')
             AND (campus = ? OR campus IS NULL OR campus = '')
-            AND end_date >= CURDATE()
+            AND end_date >= CURRENT_DATE
             AND status IN ('published', 'ongoing')
         ");
         

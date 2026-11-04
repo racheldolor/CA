@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['otp_action'])) {
             if (!filter_var($otpEmail, FILTER_VALIDATE_EMAIL) || !registrationEmailIsAllowed($otpEmail)) {
                 throw new RuntimeException('Use a valid BatStateU G-Suite email address.');
             }
-            $duplicate = $otpPdo->prepare("SELECT email FROM users WHERE BINARY email = ? UNION SELECT email FROM student_artists WHERE BINARY email = ? UNION SELECT email FROM applications WHERE BINARY email = ? AND application_status NOT IN ('rejected') LIMIT 1");
+            $duplicate = $otpPdo->prepare("SELECT email FROM users WHERE email = ? UNION SELECT email FROM student_artists WHERE email = ? UNION SELECT email FROM applications WHERE email = ? AND application_status NOT IN ('rejected') LIMIT 1");
             $duplicate->execute([$otpEmail, $otpEmail, $otpEmail]);
             if ($duplicate->fetch()) {
                 throw new RuntimeException('This email already has an account or pending application.');
@@ -178,38 +178,36 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         error_log("Second semester units: " . $second_semester_units);
 
     // Insert data into database
-    $stmt = $conn->prepare("
+    $pdo = getDBConnection();
+    $stmt = $pdo->prepare("
         INSERT INTO applications (
             performance_type, consent, first_name, middle_name, last_name, full_name, address, present_address, 
             date_of_birth, age, gender, place_of_birth, email, contact_number, father_name, mother_name, 
             guardian, guardian_contact, campus, college, sr_code, year_level, program, first_semester_units, 
             second_semester_units, instructors, profile_photo, signature_image, certification, signature_date
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        RETURNING id
     ");
-
-    // Parameter types: 23 strings, 2 integers, 1 string (instructors), 2 strings, 1 integer, 1 string = 30 total
-    // s(23) + i + i + s + s + s + i + s
-    $types = 'sssssssssssssssssssssss' . 'ii' . 's' . 'ss' . 'i' . 's';
-
-    $stmt->bind_param(
-        $types,
+    $applicationValues = [
         $performance_type, $consent, $first_name, $middle_name, $last_name, $full_name, $address, $present_address, 
         $date_of_birth, $age, $gender, $place_of_birth, $email, $contact_number, $father_name, $mother_name, 
         $guardian, $guardian_contact, $campus, $college, $sr_code, $year_level, $program, 
         $first_semester_units, $second_semester_units, $instructors, $profile_photo_path, $signature_image_path,
         $certification, $signature_date
-    );
+    ];
 
     $response = ['success' => false, 'message' => 'Unknown error'];
 
     try {
-        if ($stmt->execute()) {
-            $application_id = $conn->insert_id;
+        $pdo->beginTransaction();
+        $stmt->execute($applicationValues);
+        $application_id = (int)$stmt->fetchColumn();
+        if ($application_id > 0) {
             error_log("Application inserted successfully with ID: " . $application_id);
             
             // Insert participation records if provided
             if (isset($_POST['participation_date']) && is_array($_POST['participation_date'])) {
-                $participation_stmt = $conn->prepare("
+                $participation_stmt = $pdo->prepare("
                     INSERT INTO application_participation (application_id, participation_date, event_name, participation_level, rank_award) 
                     VALUES (?, ?, ?, ?, ?)
                 ");
@@ -222,18 +220,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     
                     // Only insert if at least one field has data
                     if (!empty($part_date) || !empty($part_event) || !empty($part_level) || !empty($part_rank)) {
-                        $participation_stmt->bind_param("issss", $application_id, $part_date, $part_event, $part_level, $part_rank);
-                        if (!$participation_stmt->execute()) {
-                            error_log("Error inserting participation record: " . $participation_stmt->error);
-                        }
+                        $participation_stmt->execute([$application_id, $part_date, $part_event, $part_level, $part_rank]);
                     }
                 }
-                $participation_stmt->close();
             }
             
             // Insert competition records if provided (NEW - Section IV)
             if (isset($_POST['competition_date']) && is_array($_POST['competition_date'])) {
-                $competition_stmt = $conn->prepare("
+                $competition_stmt = $pdo->prepare("
                     INSERT INTO application_competition (application_id, competition_date, event_name, competition_level, rank_award) 
                     VALUES (?, ?, ?, ?, ?)
                 ");
@@ -246,18 +240,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     
                     // Only insert if at least one field has data
                     if (!empty($comp_date) || !empty($comp_event) || !empty($comp_level) || !empty($comp_rank)) {
-                        $competition_stmt->bind_param("issss", $application_id, $comp_date, $comp_event, $comp_level, $comp_rank);
-                        if (!$competition_stmt->execute()) {
-                            error_log("Error inserting competition record: " . $competition_stmt->error);
-                        }
+                        $competition_stmt->execute([$application_id, $comp_date, $comp_event, $comp_level, $comp_rank]);
                     }
                 }
-                $competition_stmt->close();
             }
             
             // Insert affiliation records if provided
             if (isset($_POST['affiliation_position']) && is_array($_POST['affiliation_position'])) {
-                $affiliation_stmt = $conn->prepare("
+                $affiliation_stmt = $pdo->prepare("
                     INSERT INTO application_affiliations (application_id, position, organization, years_active) 
                     VALUES (?, ?, ?, ?)
                 ");
@@ -269,28 +259,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     
                     // Only insert if at least one field has data
                     if (!empty($aff_position) || !empty($aff_org) || !empty($aff_years)) {
-                        $affiliation_stmt->bind_param("isss", $application_id, $aff_position, $aff_org, $aff_years);
-                        if (!$affiliation_stmt->execute()) {
-                            error_log("Error inserting affiliation record: " . $affiliation_stmt->error);
-                        }
+                        $affiliation_stmt->execute([$application_id, $aff_position, $aff_org, $aff_years]);
                     }
                 }
-                $affiliation_stmt->close();
             }
             
             unset($_SESSION['performer_email_verified']);
+            $pdo->commit();
             $response = ['success' => true, 'message' => 'Application submitted successfully', 'application_id' => $application_id];
         } else {
-            $error_msg = $stmt->error;
+            $pdo->rollBack();
+            $error_msg = 'The application could not be created.';
             error_log("Database error: " . $error_msg);
             $response = ['success' => false, 'message' => 'Database error: ' . $error_msg];
         }
     } catch (Exception $e) {
+        if (isset($pdo) && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         error_log("Exception during form processing: " . $e->getMessage());
         $response = ['success' => false, 'message' => 'An error occurred while processing your application. Please try again.'];
     }
-
-    $stmt->close();
 
     // If request is AJAX (fetch), return JSON; otherwise, fall back to inline JS
     $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
