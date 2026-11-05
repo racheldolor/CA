@@ -107,7 +107,7 @@ try {
                 ) AS borrowed_item
                 WHERE br.status = 'approved'
                 AND br.current_status IN ('active', 'pending_return')
-                AND borrowed_item ? 'id'
+                AND jsonb_exists(borrowed_item, 'id')
             ) borrowed
             INNER JOIN inventory ON inventory.id = borrowed.item_id
             WHERE inventory.status != 'archived'
@@ -147,7 +147,7 @@ try {
                     ) AS borrowed_item
                     WHERE br.status = 'approved'
                     AND br.current_status IN ('active', 'pending_return')
-                    AND borrowed_item ? 'id'
+                    AND jsonb_exists(borrowed_item, 'id')
                     GROUP BY (borrowed_item->>'id')::integer
                 ) borrowed_summary
                 INNER JOIN inventory inv2 ON inv2.id = borrowed_summary.item_id_cast

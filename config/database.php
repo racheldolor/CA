@@ -51,6 +51,12 @@ function getDBConnection(): \PDO
         throw new RuntimeException('Only the PostgreSQL database connection is supported.');
     }
 
+    if (!extension_loaded('pdo_pgsql')) {
+        throw new RuntimeException(
+            'The PHP pdo_pgsql extension is not enabled. Enable extension=pdo_pgsql in php.ini and restart Apache.'
+        );
+    }
+
     if (DB_PASS === '') {
         throw new RuntimeException('DB_PASSWORD or SUPABASE_PASS is not configured.');
     }

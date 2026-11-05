@@ -94,7 +94,7 @@ try {
             COUNT(ep.student_id) as actual_participants
         FROM events e
         LEFT JOIN event_participants ep ON e.id = ep.event_id
-        WHERE e.start_date >= CURRENT_TIMESTAMP - (? * INTERVAL '1 day')" . $eventCampusFilter . "
+        WHERE e.start_date >= CURRENT_TIMESTAMP - INTERVAL '30 days'" . $eventCampusFilter . "
         GROUP BY e.id, e.title, e.start_date
         ORDER BY e.start_date DESC
         LIMIT 5
