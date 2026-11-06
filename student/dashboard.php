@@ -102,16 +102,20 @@ try {
         $user_email = $user_data['email'] ?? null;
     }
     
-    // Count upcoming events (events this month)
+    // Count all visible, non-ended events from today onward
+    $studentCulturalGroup = $student_info['cultural_group'] ?? null;
+    $studentCampus = $student_info['campus'] ?? null;
     $stmt = $pdo->prepare("
         SELECT COUNT(*) as count 
         FROM events 
-        WHERE status = 'active' 
-        AND start_date >= CURRENT_DATE
-        AND EXTRACT(MONTH FROM start_date) = EXTRACT(MONTH FROM CURRENT_DATE)
-        AND EXTRACT(YEAR FROM start_date) = EXTRACT(YEAR FROM CURRENT_DATE)
+        WHERE status IN ('published', 'ongoing')
+        AND end_date >= CURRENT_DATE
+        AND (cultural_groups LIKE ? OR cultural_groups LIKE ? OR cultural_groups = '[]' OR cultural_groups IS NULL)
+        AND (campus = ? OR campus IS NULL OR campus = '')
     ");
-    $stmt->execute();
+    $groupPattern1 = '%"' . ($studentCulturalGroup ?? '') . '"%';
+    $groupPattern2 = '%' . ($studentCulturalGroup ?? '') . '%';
+    $stmt->execute([$groupPattern1, $groupPattern2, $studentCampus]);
     $upcoming_events = $stmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
     
     // Count currently borrowed costumes for this student
@@ -2725,12 +2729,14 @@ try {
                 });
         }
 
-        // Display events (show all upcoming events - joined or not, hide when they start)
+        // Display all non-ended events, joined or not
         function displayEvents(events) {
             const eventsList = document.getElementById('eventsList');
             
-            // Filter to show only upcoming events (not yet started), regardless of join status
-            const availableEvents = events.filter(event => event.event_status === 'upcoming');
+            // Show every non-ended event, regardless of join status.
+            const availableEvents = events.filter(event =>
+                event.event_status === 'upcoming' || event.event_status === 'ongoing'
+            );
             
             if (availableEvents.length === 0) {
                 eventsList.innerHTML = `
@@ -2758,6 +2764,8 @@ try {
                 
                 if (event.has_joined) {
                     statusBadge = '<span style="background: #28a745; color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">✓ JOINED</span>';
+                } else if (event.event_status === 'ongoing') {
+                    statusBadge = '<span style="background: #f59e0b; color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">ONGOING</span>';
                 } else {
                     statusBadge = '<span style="background: #007bff; color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">UPCOMING</span>';
                     actionButton = `<button class="action-btn" onclick="joinEvent(${event.id})" style="margin-left: auto; white-space: nowrap;">Join Event</button>`;

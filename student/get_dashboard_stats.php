@@ -40,17 +40,15 @@ try {
         $studentCampus = $student['campus'] ?? null;
     }
     
-    // Count upcoming events (filtered by cultural group and campus)
+    // Count all upcoming events from today onward (filtered by cultural group and campus)
     if ($studentCulturalGroup && $studentCampus) {
         $stmt = $pdo->prepare("
             SELECT COUNT(*) as count 
             FROM events 
-            WHERE status IN ('published', 'ongoing', 'draft')
-            AND start_date >= CURRENT_DATE
-            AND EXTRACT(MONTH FROM start_date) = EXTRACT(MONTH FROM CURRENT_DATE)
-            AND EXTRACT(YEAR FROM start_date) = EXTRACT(YEAR FROM CURRENT_DATE)
-            AND (cultural_groups LIKE ? OR cultural_groups LIKE ? OR cultural_groups = '[]')
-            AND (venue = ? OR venue IS NULL OR venue = '')
+            WHERE status IN ('published', 'ongoing')
+            AND end_date >= CURRENT_DATE
+            AND (cultural_groups LIKE ? OR cultural_groups LIKE ? OR cultural_groups = '[]' OR cultural_groups IS NULL)
+            AND (campus = ? OR campus IS NULL OR campus = '')
         ");
         $groupPattern1 = '%\"' . $studentCulturalGroup . '\"%';
         $groupPattern2 = '%' . $studentCulturalGroup . '%';

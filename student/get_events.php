@@ -63,7 +63,6 @@ try {
         AND e.end_date >= CURRENT_DATE
         AND e.status IN ('published', 'ongoing')
         ORDER BY e.start_date ASC
-        LIMIT 50
     ";
     
     $eventsStmt = $pdo->prepare($query);
