@@ -350,7 +350,7 @@ DO $$
 DECLARE
     table_name text;
 BEGIN
-    FOREACH table_name IN ARRAY ARRAY['users','student_artists','announcements','applications','events','event_participants','event_evaluations','evaluation_summary','question_analysis','inventory','borrowing_requests','return_requests','repair_items','student_certificates','student_affiliation_records','student_competition_records','student_participation_records','deleted_students','system_settings','admin_logs','otp_challenges']
+    FOREACH table_name IN ARRAY ARRAY['users','student_artists','announcements','applications','events','event_participants','inventory','borrowing_requests','return_requests','repair_items','student_certificates','student_affiliation_records','student_competition_records','student_participation_records','system_settings']
     LOOP
         EXECUTE format('DROP TRIGGER IF EXISTS %I_updated_at ON %I', table_name, table_name);
         EXECUTE format('CREATE TRIGGER %I_updated_at BEFORE UPDATE ON %I FOR EACH ROW EXECUTE FUNCTION set_updated_at()', table_name, table_name);

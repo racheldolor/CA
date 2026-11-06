@@ -32,7 +32,8 @@ A PHP + MySQL web system for managing campus culture and arts operations. It cov
 7. Install PHPMailer from the project root: `composer install --no-dev`.
 8. Configure the SMTP environment variables below in Apache/PHP-FPM or the hosting control panel.
 9. Run `database/2026_11_otp_migration.sql` once against `capstone_culture_arts`.
-10. Open the app in a browser:
+10. For an existing Supabase database created from an earlier schema, run `database/2026_11_fix_updated_at_triggers.sql` once to remove invalid `updated_at` triggers.
+11. Open the app in a browser:
    - `http://localhost/capstone/`
 
 ## Database

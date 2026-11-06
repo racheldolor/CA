@@ -1484,7 +1484,7 @@ ob_end_clean();
                             <table class="users-table">
                                 <thead>
                                     <tr>
-                                        <th>User ID</th>
+                                        <th>No.</th>
                                         <th>Name</th>
                                         <th>Email</th>
                                         <th>Role</th>
@@ -1504,9 +1504,9 @@ ob_end_clean();
                                             </td>
                                         </tr>
                                     <?php else: ?>
-                                        <?php foreach ($users as $user): ?>
+                                        <?php foreach ($users as $index => $user): ?>
                                             <tr data-user-id="<?= $user['id'] ?>" data-source-table="<?= $user['source_table'] ?>">
-                                                <td><?= $user['id'] ?></td>
+                                                <td><?= $offset + $index + 1 ?></td>
                                                 <td><?= htmlspecialchars(trim($user['first_name'] . ' ' . ($user['middle_name'] ? $user['middle_name'] . ' ' : '') . $user['last_name'])) ?></td>
                                                 <td><?= htmlspecialchars($user['email']) ?></td>
                                                 <td>
@@ -1591,7 +1591,7 @@ ob_end_clean();
                             <table class="users-table">
                                 <thead>
                                     <tr>
-                                        <th>Student ID</th>
+                                        <th>No.</th>
                                         <th>Name</th>
                                         <th>Email</th>
                                         <th>Role</th>
@@ -1611,9 +1611,9 @@ ob_end_clean();
                                             </td>
                                         </tr>
                                     <?php else: ?>
-                                        <?php foreach ($student_artists as $student): ?>
+                                        <?php foreach ($student_artists as $index => $student): ?>
                                             <tr data-user-id="<?= $student['id'] ?>" data-source-table="<?= $student['source_table'] ?>">
-                                                <td><?= $student['id'] ?></td>
+                                                <td><?= $students_offset + $index + 1 ?></td>
                                                 <td><?= htmlspecialchars(trim($student['first_name'] . ' ' . ($student['middle_name'] ? $student['middle_name'] . ' ' : '') . $student['last_name'])) ?></td>
                                                 <td><?= htmlspecialchars($student['email']) ?></td>
                                                 <td>
@@ -1692,7 +1692,7 @@ ob_end_clean();
                             <table class="users-table">
                                 <thead>
                                     <tr>
-                                        <th>User ID</th>
+                                        <th>No.</th>
                                         <th>Name</th>
                                         <th>Email</th>
                                         <th>Role</th>
@@ -1746,9 +1746,9 @@ ob_end_clean();
                                             </td>
                                         </tr>
                                     <?php else: ?>
-                                        <?php foreach ($archived_users as $archived_user): ?>
+                                        <?php foreach ($archived_users as $index => $archived_user): ?>
                                             <tr data-user-id="<?= $archived_user['id'] ?>" data-source-table="<?= $archived_user['source_table'] ?>">
-                                                <td><?= $archived_user['id'] ?></td>
+                                                <td><?= $index + 1 ?></td>
                                                 <td><?= htmlspecialchars(trim($archived_user['first_name'] . ' ' . ($archived_user['middle_name'] ? $archived_user['middle_name'] . ' ' : '') . $archived_user['last_name'])) ?></td>
                                                 <td><?= htmlspecialchars($archived_user['email']) ?></td>
                                                 <td>
