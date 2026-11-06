@@ -408,7 +408,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         case 'update_system_settings':
             try {
                 $admin_email = trim($_POST['admin_email'] ?? '');
-                $admin_password = trim($_POST['admin_password'] ?? '');
+                $admin_password = $_POST['admin_password'] ?? '';
                 
                 if (empty($admin_email)) {
                     throw new Exception('Admin email is required');
@@ -1786,7 +1786,7 @@ ob_end_clean();
                     <h1 class="page-title">System Settings</h1>
                 </div>
 
-                <form id="systemSettingsForm" class="settings-form" onsubmit="updateSystemSettings(event)">
+                <form id="systemSettingsForm" class="settings-form" autocomplete="off" onsubmit="updateSystemSettings(event)">
                     <div class="form-group">
                         <label class="form-label">Admin Email</label>
                         <input type="email" name="admin_email" class="form-input" value="admin@g.batstate-u.edu.ph" required>
@@ -1794,8 +1794,8 @@ ob_end_clean();
                     
                     <div class="form-group">
                         <label class="form-label">Admin Password</label>
-                        <input type="password" name="admin_password" class="form-input" placeholder="Enter new password (leave blank to keep current)">
-                        <small style="color: #666; font-size: 0.85rem; margin-top: 0.25rem; display: block;">Leave blank to keep the current password</small>
+                        <input type="password" name="admin_password" class="form-input" autocomplete="new-password" placeholder="Enter a new password">
+                        <small style="color: #666; font-size: 0.85rem; margin-top: 0.25rem; display: block;">Leave blank to keep the current password. For security, the current password is never displayed.</small>
                     </div>
                     
                     <div class="show-password-container">
@@ -1965,6 +1965,10 @@ ob_end_clean();
         function loadSystemSettings() {
             const formData = new FormData();
             formData.append('action', 'get_system_settings');
+            const passwordField = document.querySelector('input[name="admin_password"]');
+            if (passwordField) {
+                passwordField.value = '';
+            }
 
             fetch('', {
                 method: 'POST',

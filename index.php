@@ -12,17 +12,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'], $_POST['pass
     if (!preg_match('/@g\.batstate-u\.edu\.ph$/', $email)) {
         $error_message = 'Only @g.batstate-u.edu.ph email addresses are allowed.';
     } elseif ($email !== '' && $password !== '') {
-        // Hardcoded admin credential (per request)
-        if ($email === 'admin@g.batstate-u.edu.ph' && $password === 'batstateu') {
-            $_SESSION['user_id'] = 0;
-            $_SESSION['user_email'] = $email;
-            $_SESSION['user_name'] = 'Administrator';
-            $_SESSION['user_role'] = 'admin';
-            $_SESSION['logged_in'] = true;
-            header('Location: admin/dashboard.php');
-            exit();
-        }
-
         try {
             $pdo = getDBConnection();
             
