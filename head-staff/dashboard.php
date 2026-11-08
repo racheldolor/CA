@@ -48,7 +48,7 @@ $isPabloBorbonHead = ($user_role === 'head' && $user_campus === 'Pablo Borbon');
 // - Other campus head: see only their campus
 $canViewAll = ($user_role === 'admin' || ($user_campus === 'Pablo Borbon' && $user_role === 'head') || $user_role === 'director');
 $canManage = !$isDirector; // Only Director is view-only
-$canManageEvents = true; // Director can create/edit events like head staff
+$canManageEvents = $canManage; // Directors can view events but cannot create or edit them
 
 // Build campus filter for SQL
 if ($canViewAll) {
@@ -2794,7 +2794,9 @@ try {
                                 <!-- Events will be loaded here -->
                                 <div class="empty-events">
                                     <p>No upcoming events scheduled</p>
+                                    <?php if ($canManageEvents): ?>
                                     <small>Add a new event to get started</small>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                             <div class="events-footer">
@@ -4008,6 +4010,7 @@ try {
                             </div>
                             ` : ''}
                             
+                            ${canManage ? `
                             <div style="display: flex; gap: 1rem; align-items: flex-end;">
                                 <div style="flex: 1;">
                                     <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: #333;">Assign Group:</label>
@@ -4019,6 +4022,7 @@ try {
                                     Assign Group
                                 </button>
                             </div>
+                            ` : ''}
                             <div style="margin-top: 1rem; padding: 0.75rem; background: #f8f9fa; border-radius: 4px; border-left: 4px solid #17a2b8;">
                                 <span style="font-size: 0.85rem; color: #666;">Current Assignment: </span>
                                 <span style="font-weight: 600; color: #333;">${culturalGroupValue}</span>
@@ -4228,7 +4232,9 @@ try {
             studentProfileContent.innerHTML = html;
             
             // Populate cultural groups dropdown with current selection
-            populateCulturalGroups(student.cultural_group);
+            if (canManage) {
+                populateCulturalGroups(student.cultural_group);
+            }
         }
 
         function getCurrentCampusFilter() {
@@ -5732,7 +5738,7 @@ try {
         function displayCostumes(costumes) {
             const tableBody = document.getElementById('costumesTableBody');
             if (!costumes || costumes.length === 0) {
-                tableBody.innerHTML = '<div class="empty-state" style="padding: 2rem; text-align: center; color: #666;"><p>No costumes found.</p><small>Click "Add Costume" to get started.</small></div>';
+                tableBody.innerHTML = '<div class="empty-state" style="padding: 2rem; text-align: center; color: #666;"><p>No costumes found.</p>' + (canManage ? '<small>Click "Add Costume" to get started.</small>' : '') + '</div>';
                 return;
             }
             
@@ -5752,7 +5758,7 @@ try {
         function displayEquipment(equipment) {
             const tableBody = document.getElementById('equipmentTableBody');
             if (!equipment || equipment.length === 0) {
-                tableBody.innerHTML = '<div class="empty-state" style="padding: 2rem; text-align: center; color: #666;"><p>No equipment found.</p><small>Click "Add Costume" to get started.</small></div>';
+                tableBody.innerHTML = '<div class="empty-state" style="padding: 2rem; text-align: center; color: #666;"><p>No equipment found.</p>' + (canManage ? '<small>Click "Add Costume" to get started.</small>' : '') + '</div>';
                 return;
             }
             
@@ -6348,7 +6354,7 @@ try {
                 eventsList.innerHTML = `
                     <div class="empty-events">
                         <p>No upcoming events scheduled</p>
-                        <small>Add a new event to get started</small>
+                        ${canManageEvents ? '<small>Add a new event to get started</small>' : ''}
                     </div>
                 `;
                 return;

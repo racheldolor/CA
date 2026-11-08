@@ -1193,7 +1193,9 @@ $pdo = getDBConnection();
             if (!costumes || costumes.length === 0) {
                 const searchTerm = document.getElementById('inventorySearchInput').value.trim();
                 const message = searchTerm ? 'No costumes match your search.' : 'No costumes found.';
-                const subMessage = searchTerm ? 'Try different search terms.' : 'Click "Add Item" to get started.';
+                const subMessage = searchTerm
+                    ? 'Try different search terms.'
+                    : <?= $canManage ? "'Click \\\"Add Item\\\" to get started.'" : "''" ?>;
                 tableBody.innerHTML = `<div class="empty-state"><p>${message}</p><small>${subMessage}</small></div>`;
                 return;
             }
@@ -1227,7 +1229,9 @@ $pdo = getDBConnection();
             if (!equipment || equipment.length === 0) {
                 const searchTerm = document.getElementById('inventorySearchInput').value.trim();
                 const message = searchTerm ? 'No equipment matches your search.' : 'No equipment found.';
-                const subMessage = searchTerm ? 'Try different search terms.' : 'Click "Add Item" to get started.';
+                const subMessage = searchTerm
+                    ? 'Try different search terms.'
+                    : <?= $canManage ? "'Click \\\"Add Item\\\" to get started.'" : "''" ?>;
                 tableBody.innerHTML = `<div class="empty-state"><p>${message}</p><small>${subMessage}</small></div>`;
                 return;
             }
