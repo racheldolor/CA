@@ -29,7 +29,7 @@ header('Content-Type: application/json');
 try {
     $pdo = getDBConnection();
     
-    // Get upcoming events (next 30 days) with campus filtering
+    // Get all upcoming events with campus filtering
     $sql = "
         SELECT 
             e.id,
@@ -44,11 +44,9 @@ try {
         FROM events e
         LEFT JOIN event_participants ep ON e.id = ep.event_id
         WHERE e.start_date >= CURRENT_DATE
-        AND e.start_date <= CURRENT_DATE + INTERVAL '30 days'
         " . $campusFilter . "
         GROUP BY e.id, e.title, e.start_date, e.end_date, e.location, e.category, e.cultural_groups, e.campus
         ORDER BY e.start_date ASC
-        LIMIT 10
     ";
     $upcomingStmt = $pdo->prepare($sql);
     $upcomingStmt->execute($campusParams);
@@ -69,7 +67,6 @@ try {
             COUNT(CASE WHEN e.category = 'performance' THEN 1 END) as performances
         FROM events e
         WHERE e.start_date >= CURRENT_DATE
-        AND e.start_date <= CURRENT_DATE + INTERVAL '30 days'
         " . $campusFilter . "
     ";
     $statsStmt = $pdo->prepare($statsSql);

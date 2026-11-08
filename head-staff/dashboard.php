@@ -5047,7 +5047,7 @@ try {
                     <div style="margin-bottom: 1rem;">
                         <h4 style="margin: 0 0 0.5rem 0; color: #333; font-size: 0.9rem; font-style: normal;">Next Events</h4>
                         <div style="max-height: 120px; overflow-y: auto;">
-                            ${upcomingEvents.length > 0 ? upcomingEvents.slice(0, 4).map(event => `
+                            ${upcomingEvents.length > 0 ? upcomingEvents.map(event => `
                                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.4rem; border-bottom: 1px solid #eee; font-size: 0.8rem; font-style: normal;">
                                     <div style="font-style: normal;">
                                         <div style="font-weight: 500; font-style: normal;">${event.title}</div>
