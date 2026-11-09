@@ -6,6 +6,43 @@ use PHPMailer\PHPMailer\PHPMailer;
 
 final class EmailService
 {
+    public static function sendNotification(string $recipient, string $subject, string $htmlBody, string $textBody): void
+    {
+        $autoload = __DIR__ . '/../vendor/autoload.php';
+        if (!is_file($autoload)) {
+            throw new RuntimeException('Email service is not configured. Install Composer dependencies first.');
+        }
+        require_once $autoload;
+
+        $config = mailConfig();
+        if ($config['username'] === '' || $config['password'] === '') {
+            throw new RuntimeException('Email service is not configured. Set the Gmail SMTP environment variables.');
+        }
+
+        $mail = new PHPMailer(true);
+        try {
+            $mail->isSMTP();
+            $mail->Host = $config['host'];
+            $mail->SMTPAuth = true;
+            $mail->Username = $config['username'];
+            $mail->Password = $config['password'];
+            $mail->Port = $config['port'];
+            $mail->SMTPSecure = $config['encryption'];
+            $mail->Timeout = 10;
+            $mail->CharSet = 'UTF-8';
+            $mail->setFrom($config['from_email'], $config['from_name']);
+            $mail->addAddress($recipient);
+            $mail->isHTML(true);
+            $mail->Subject = $subject;
+            $mail->Body = $htmlBody;
+            $mail->AltBody = $textBody;
+            $mail->send();
+        } catch (Exception $exception) {
+            error_log('Notification email delivery failed: ' . $exception->getMessage());
+            throw new RuntimeException('The notification email could not be sent.', 0, $exception);
+        }
+    }
+
     public static function sendOtp(string $recipient, string $otp, string $purpose, int $expiresInSeconds = 300): void
     {
         $autoload = __DIR__ . '/../vendor/autoload.php';

@@ -1,5 +1,6 @@
 <?php
 session_start();
+require_once '../services/NotificationService.php';
 require_once '../config/database.php';
 
 // Check if user is authenticated
@@ -56,7 +57,7 @@ try {
     }
     
     // Check if event exists and user has permission to edit
-    $stmt = $pdo->prepare("SELECT id, event_poster, venue, campus FROM events WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT id, event_poster, venue, campus, title, description, start_date, end_date, location, category, cultural_groups, status FROM events WHERE id = ?");
     $stmt->execute([$event_id]);
     $existing_event = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -125,6 +126,22 @@ try {
     ]);
     
     if ($result) {
+        $changedFields = ['title', 'description', 'start_date', 'end_date', 'location', 'category', 'cultural_groups', 'campus'];
+        $eventChanged = false;
+        foreach ($changedFields as $field) {
+            $newValue = $field === 'cultural_groups' ? $cultural_groups_json : ($field === 'campus' ? $campus : $$field);
+            if ((string)($existing_event[$field] ?? '') !== (string)$newValue) {
+                $eventChanged = true;
+                break;
+            }
+        }
+        if ($eventChanged && in_array((string)$existing_event['status'], ['published', 'ongoing'], true)) {
+            $version = hash('sha256', json_encode([
+                $title, $description, $start_date, $end_date, $location,
+                $category, $cultural_groups_json, $campus
+            ]));
+            NotificationService::sendEvent($pdo, (int)$event_id, 'event_updated', $version);
+        }
         echo json_encode([
             'success' => true, 
             'message' => 'Event updated successfully!'

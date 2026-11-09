@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../config/database.php';
+require_once '../services/NotificationService.php';
 
 // Handle AJAX requests FIRST - before any other processing
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -202,13 +203,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             try {
                 $user_id = intval($_POST['user_id']);
                 $source_table = $_POST['source_table'] ?? 'users';
-                
-                if ($source_table === 'student_artists') {
-                    $stmt = $pdo->prepare("UPDATE student_artists SET status = 'suspended' WHERE id = ?");
-                } else {
-                    $stmt = $pdo->prepare("UPDATE users SET status = 'suspended' WHERE id = ?");
+
+                if (!in_array($source_table, ['users', 'student_artists'], true)) {
+                    throw new Exception('Invalid account source');
                 }
+                $stmt = $pdo->prepare("UPDATE \"$source_table\" SET status = 'suspended' WHERE id = ? AND status = 'active'");
                 $stmt->execute([$user_id]);
+
+                if ($stmt->rowCount() === 1) {
+                    NotificationService::sendAccountSuspension($pdo, $source_table, $user_id, $_POST['reason'] ?? null);
+                }
                 
                 logAdminAction($pdo, $_SESSION['admin_id'], 'USER_SUSPEND', $user_id, "User suspended in $source_table");
                 echo json_encode(['success' => true, 'message' => 'User suspended successfully']);
@@ -221,13 +225,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             try {
                 $user_id = intval($_POST['user_id']);
                 $source_table = $_POST['source_table'] ?? 'users';
-                
-                if ($source_table === 'student_artists') {
-                    $stmt = $pdo->prepare("UPDATE student_artists SET status = 'active' WHERE id = ?");
-                } else {
-                    $stmt = $pdo->prepare("UPDATE users SET status = 'active' WHERE id = ?");
+
+                if (!in_array($source_table, ['users', 'student_artists'], true)) {
+                    throw new Exception('Invalid account source');
                 }
+                $stmt = $pdo->prepare("UPDATE \"$source_table\" SET status = 'active' WHERE id = ? AND status <> 'active'");
                 $stmt->execute([$user_id]);
+
+                if ($stmt->rowCount() === 1) {
+                    NotificationService::sendAccountActivation($pdo, $source_table, $user_id);
+                }
                 
                 logAdminAction($pdo, $_SESSION['admin_id'], 'USER_ACTIVATE', $user_id, "User activated in $source_table");
                 echo json_encode(['success' => true, 'message' => 'User activated successfully']);

@@ -1,5 +1,6 @@
 <?php
 session_start();
+require_once '../services/NotificationService.php';
 require_once '../config/database.php';
 
 // Check if user is authenticated
@@ -86,6 +87,8 @@ try {
     
     if ($result) {
         $event_id = $pdo->lastInsertId();
+
+        NotificationService::sendEvent($pdo, (int)$event_id);
         
         // Auto-create announcement when director creates an event
         if ($user_role === 'director') {

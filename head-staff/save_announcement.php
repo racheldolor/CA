@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../config/database.php';
+require_once '../services/NotificationService.php';
 
 // Check if user is authenticated as staff
 if (!isset($_SESSION['logged_in']) || !in_array($_SESSION['user_role'], ['head', 'director'])) {
@@ -25,6 +26,7 @@ try {
     $is_pinned = isset($_POST['is_pinned']) ? 1 : 0;
     $is_published = isset($_POST['is_published']) ? 1 : 0;
     $user_id = $_SESSION['user_id'];
+    $wasPublished = false;
     
     // Validate required fields
     if (empty($title) || empty($content)) {
@@ -34,6 +36,10 @@ try {
     
     // Update existing announcement
     if ($id) {
+        $previousStmt = $pdo->prepare('SELECT is_published FROM announcements WHERE id = ?');
+        $previousStmt->execute([$id]);
+        $wasPublished = (int)$previousStmt->fetchColumn() === 1;
+
         $stmt = $pdo->prepare("
             UPDATE announcements SET
                 title = ?,
@@ -68,6 +74,9 @@ try {
         ]);
         
         if ($result) {
+            if ($is_published && !$wasPublished) {
+                NotificationService::sendAnnouncement($pdo, $id);
+            }
             error_log("Announcement updated successfully. ID: $id, User: $user_id");
             echo json_encode(['success' => true, 'message' => 'Announcement updated successfully']);
         } else {
@@ -102,6 +111,9 @@ try {
         
         if ($result) {
             $new_id = $pdo->lastInsertId();
+            if ($is_published) {
+                NotificationService::sendAnnouncement($pdo, (int)$new_id);
+            }
             error_log("Announcement created successfully. ID: $new_id, User: $user_id, Title: $title");
             echo json_encode(['success' => true, 'message' => 'Announcement created successfully', 'id' => $new_id]);
         } else {
