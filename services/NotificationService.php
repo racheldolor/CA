@@ -154,7 +154,8 @@ final class NotificationService
             }
             try {
                 EmailService::sendNotification($recipient['email'], $subject, $html, $text);
-                $pdo->prepare("UPDATE notification_logs SET status = 'sent', sent_at = CURRENT_TIMESTAMP WHERE id = ?")->execute([$logId]);
+                $sentAt = self::now()->format('Y-m-d H:i:s');
+                $pdo->prepare("UPDATE notification_logs SET status = 'sent', sent_at = ? WHERE id = ?")->execute([$sentAt, $logId]);
             } catch (Throwable $exception) {
                 $pdo->prepare("UPDATE notification_logs SET status = 'failed', error_message = ? WHERE id = ?")->execute([substr($exception->getMessage(), 0, 1000), $logId]);
                 error_log('Notification delivery failed: ' . $exception->getMessage());
@@ -196,8 +197,7 @@ final class NotificationService
         $title = self::escape((string)$announcement['title']);
         $content = nl2br(self::escape((string)$announcement['content']));
         $category = self::escape((string)($announcement['category'] ?? 'General'));
-        $publishedAt = strtotime((string)($announcement['publish_date'] ?? ''));
-        $date = self::escape($publishedAt ? date('F j, Y', $publishedAt) : date('F j, Y'));
+        $date = self::escape(self::now()->format('F j, Y g:i A'));
         $priority = self::escape(ucfirst((string)($announcement['priority'] ?? 'medium')));
         $audience = self::escape(ucfirst((string)($announcement['target_audience'] ?? 'all')));
         $campus = self::escape((string)($announcement['target_campus'] ?? 'all') === 'all' ? 'All campuses' : (string)$announcement['target_campus']);
@@ -232,6 +232,11 @@ final class NotificationService
     private static function appUrl(): string
     {
         return rtrim(getenv('OCA_APP_URL') ?: self::APP_URL, '/');
+    }
+
+    private static function now(): DateTimeImmutable
+    {
+        return new DateTimeImmutable('now', new DateTimeZone('Asia/Manila'));
     }
 
     private static function escape(string $value): string
