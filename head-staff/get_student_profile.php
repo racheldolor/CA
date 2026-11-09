@@ -11,8 +11,8 @@ if (!isset($_SESSION['logged_in']) || !in_array($_SESSION['user_role'], ['head',
 header('Content-Type: application/json');
 
 try {
-    $input = json_decode(file_get_contents('php://input'), true);
-    $student_id = intval($input['student_id']);
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+    $student_id = intval($input['student_id'] ?? 0);
     
     if (empty($student_id)) {
         echo json_encode(['success' => false, 'message' => 'Invalid student ID']);
@@ -102,6 +102,8 @@ try {
     
     // Store the student_id for reference
     $student['student_id'] = $student_id;
+
+    unset($student['password']);
     
     // profile_photo is already in the student_artists data, no need to fetch from applications
     
