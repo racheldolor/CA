@@ -31,12 +31,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($action === 'request') {
                 $email = trim($_POST['email'] ?? '');
                 $account = null;
-                $stmt = $pdo->prepare('SELECT id, email FROM users WHERE email = ? AND status = \'active\' LIMIT 1');
+                $stmt = $pdo->prepare('SELECT id, email FROM users WHERE LOWER(email) = LOWER(?) AND status = \'active\' LIMIT 1');
                 $stmt->execute([$email]);
                 if ($row = $stmt->fetch()) {
                     $account = ['table' => 'users', 'id' => (int)$row['id'], 'email' => $row['email']];
                 } else {
-                    $stmt = $pdo->prepare('SELECT id, email FROM student_artists WHERE email = ? AND status = \'active\' LIMIT 1');
+                    $stmt = $pdo->prepare('SELECT id, email FROM student_artists WHERE LOWER(email) = LOWER(?) AND status = \'active\' LIMIT 1');
                     $stmt->execute([$email]);
                     if ($row = $stmt->fetch()) {
                         $account = ['table' => 'student_artists', 'id' => (int)$row['id'], 'email' => $row['email']];

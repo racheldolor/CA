@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo = getDBConnection();
             
             // First check users table
-            $stmt = $pdo->prepare("SELECT id, password FROM users WHERE email = ?");
+            $stmt = $pdo->prepare("SELECT id, password FROM users WHERE LOWER(email) = LOWER(?)");
             $stmt->execute([$email]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
             
@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $table_name = 'users';
             } else {
                 // Check student_artists table
-                $stmt = $pdo->prepare("SELECT id, password FROM student_artists WHERE email = ?");
+                $stmt = $pdo->prepare("SELECT id, password FROM student_artists WHERE LOWER(email) = LOWER(?)");
                 $stmt->execute([$email]);
                 $user = $stmt->fetch(PDO::FETCH_ASSOC);
                 

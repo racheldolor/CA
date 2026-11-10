@@ -5,26 +5,26 @@ require_once 'config/database.php';
 // Server-side login handling (process modal form here instead of login.php)
 $error_message = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['email'], $_POST['password'])) {
-    $email = trim($_POST['email']); // Keep original case - do NOT convert to lowercase
+    $email = trim($_POST['email']);
     $password = $_POST['password'];
     
-    // Validate email domain (case-sensitive)
-    if (!preg_match('/@g\.batstate-u\.edu\.ph$/', $email)) {
+    // Email addresses should be accepted regardless of letter casing.
+    if (!preg_match('/@g\.batstate-u\.edu\.ph$/i', $email)) {
         $error_message = 'Only @g.batstate-u.edu.ph email addresses are allowed.';
     } elseif ($email !== '' && $password !== '') {
         try {
             $pdo = getDBConnection();
             
-            // First, check the users table (for admin, head, director) - CASE-SENSITIVE
-                $stmt = $pdo->prepare("SELECT id, first_name, middle_name, last_name, email, password, role, status, campus FROM users WHERE email = ?");
+            // First, check the users table (for admin, head, director).
+                $stmt = $pdo->prepare("SELECT id, first_name, middle_name, last_name, email, password, role, status, campus FROM users WHERE LOWER(email) = LOWER(?)");
             $stmt->execute([$email]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
             
             $user_table = 'users'; // Track which table the user comes from
             
-            // If not found in users table, check student_artists table - CASE-SENSITIVE
+            // If not found in users table, check student_artists table.
             if (!$user) {
-                $stmt = $pdo->prepare("SELECT id, first_name, middle_name, last_name, email, password, status, sr_code, campus FROM student_artists WHERE email = ?");
+                $stmt = $pdo->prepare("SELECT id, first_name, middle_name, last_name, email, password, status, sr_code, campus FROM student_artists WHERE LOWER(email) = LOWER(?)");
                 $stmt->execute([$email]);
                 $student = $stmt->fetch(PDO::FETCH_ASSOC);
                 
