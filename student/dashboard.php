@@ -5186,5 +5186,6 @@ try {
             alert('🗑️ Photo marked for deletion! Click "Save Profile" to confirm.');
         }
     </script>
+    <?php $chatbotBasePath = '../'; include __DIR__ . '/../components/oca-chatbot.php'; ?>
 </body>
 </html>

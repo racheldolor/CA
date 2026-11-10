@@ -664,5 +664,6 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true && isset($_
             <?php endif; ?>
         });
     </script>
+    <?php $chatbotBasePath = ''; include __DIR__ . '/components/oca-chatbot.php'; ?>
 </body>
 </html>
