@@ -54,6 +54,9 @@ if ($apiKey === '') {
 }
 
 $context = "Office of Culture and Arts (OCA) assistant. Answer only about OCA culture and arts programs, student participation, published announcements, published events, Student Artist registration, and related services. Do not discuss software implementation, databases, credentials, or private student/admin information. Use only the verified context below. If the context does not answer the question, say the information is not currently available and recommend contacting the OCA office. Keep answers concise and clear.\n\n";
+$context .= "Verified FAQ guidance:\n";
+$context .= "- Joining OCA activities: A student must sign in to a student account and open the Student Dashboard. In the Events section, the system shows published or ongoing events that match the student's cultural group and campus. For an upcoming eligible event, select 'Join Event'. Events already joined show a joined status. Ongoing events are displayed, but the dashboard does not show a join button for them. Do not promise access to events that are not displayed for the student's group or campus. Direct students to the current Events section rather than inventing a separate activity-registration process.\n";
+$context .= "- Becoming a Student Artist: From the login page, select 'Register here' under 'Interested in becoming a Student Performer?' and complete the Performer's Profile Form. The form collects performance or cultural-group interest and student/personal details, requires a valid BatStateU G-Suite email, and requires email verification with a six-digit OTP before submission. The application is sent to an OCA staff for approval; email verification does not create an approved account immediately. Students can check their application status through the login page's 'View status here' link using their SR Code. Do not say that approval is automatic or that registration is complete before administrator approval.\n\n";
 try {
     $pdo = getDBConnection();
     $announcements = $pdo->query("SELECT title, content, created_at FROM announcements WHERE is_active = 1 AND is_published = 1 AND (expiry_date IS NULL OR expiry_date >= CURRENT_DATE) ORDER BY is_pinned DESC, created_at DESC LIMIT 10")->fetchAll(PDO::FETCH_ASSOC);
@@ -102,7 +105,7 @@ curl_setopt_array($request, [
 $rawResponse = curl_exec($request);
 $curlError = curl_error($request);
 $status = (int)curl_getinfo($request, CURLINFO_HTTP_CODE);
-curl_close($request);
+unset($request);
 
 if ($rawResponse === false || $curlError !== '') {
     error_log('OCA Gemini connection error: ' . $curlError);
