@@ -86,6 +86,7 @@ $active_section = isset($_GET['section']) ? $_GET['section'] : 'events';
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/jpeg" href="../assets/logo.jpg?v=2">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Archives - Culture and Arts</title>
     <style>
@@ -534,7 +535,7 @@ $active_section = isset($_GET['section']) ? $_GET['section'] : 'events';
     <!-- Header -->
     <header class="header">
         <div class="header-left">
-            <img src="../assets/OCA Logo.png" alt="BatStateU Logo" class="logo">
+            <img src="../assets/logo.jpg" alt="BatStateU Logo" class="logo">
             <h1 class="header-title">Culture and Arts - Dashboard</h1>
         </div>
         <div class="header-right">

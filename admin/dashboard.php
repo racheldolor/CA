@@ -697,6 +697,7 @@ ob_end_clean();
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/jpeg" href="../assets/logo.jpg?v=2">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Culture and Arts - BatStateU TNEU</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1430,7 +1431,7 @@ ob_end_clean();
     <!-- Header -->
     <header class="header">
         <div class="header-left">
-            <img src="../assets/OCA Logo.png" alt="BatStateU Logo" class="logo">
+            <img src="../assets/logo.jpg" alt="BatStateU Logo" class="logo">
             <h1 class="header-title">Culture and Arts - Dashboard</h1>
         </div>
         <div class="header-right">

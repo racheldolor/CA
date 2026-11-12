@@ -220,6 +220,7 @@ try {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/jpeg" href="../assets/logo.jpg?v=2">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://cdn.jsdelivr.net;">
     <title>Staff Dashboard - Culture and Arts - BatStateU TNEU</title>
@@ -2344,7 +2345,7 @@ try {
     <!-- Header -->
     <header class="header">
         <div class="header-left">
-            <img src="../assets/OCA Logo.png" alt="BatStateU Logo" class="logo">
+            <img src="../assets/logo.jpg" alt="BatStateU Logo" class="logo">
             <h1 class="header-title">Culture and Arts - Dashboard</h1>
         </div>
         <div class="header-right">

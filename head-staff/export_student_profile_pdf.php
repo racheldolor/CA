@@ -143,7 +143,6 @@ $pdf->Cell($revCell, $headerHeight, 'Revision No.: 01', 1, 1, 'L');
 // Place logo INSIDE the first cell
 $logoPaths = [
     ['path' => '../assets/logo.jpg', 'type' => 'JPEG'],
-    ['path' => '../assets/OCA Logo.png', 'type' => 'PNG'],
     ['path' => '../assets/bsu.png', 'type' => 'PNG'],
     ['path' => '../assets/bsu.jpg', 'type' => 'JPEG']
 ];

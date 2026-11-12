@@ -218,6 +218,7 @@ try {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/jpeg" href="../assets/logo.jpg?v=2">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard - Culture and Arts</title>
     <style>
@@ -1970,7 +1971,7 @@ try {
     <!-- Header -->
     <header class="header">
         <div class="header-left">
-            <img src="../assets/OCA Logo.png" alt="BatStateU Logo" class="logo">
+            <img src="../assets/logo.jpg" alt="BatStateU Logo" class="logo">
             <h1 class="header-title">Student Dashboard - Culture and Arts</h1>
         </div>
         <div class="header-right">

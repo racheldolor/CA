@@ -58,6 +58,7 @@ try {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/jpeg" href="../assets/logo.jpg?v=2">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://cdn.jsdelivr.net;">
     <title>Announcements - Staff Dashboard - Culture and Arts - BatStateU TNEU</title>
@@ -702,7 +703,7 @@ try {
     <!-- Header -->
     <header class="header">
         <div class="header-left">
-            <img src="../assets/OCA Logo.png" alt="OCA Logo" class="logo">
+            <img src="../assets/logo.jpg" alt="OCA Logo" class="logo">
             <div class="header-title">Culture and Arts - Dashboard</div>
         </div>
         <div class="header-right">

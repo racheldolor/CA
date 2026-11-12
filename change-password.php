@@ -75,6 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/jpeg" href="assets/logo.jpg?v=2">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Change Password - Culture and Arts - BatStateU TNEU</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -432,7 +433,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="login-card">
             <div class="login-header">
                 <div class="logo-section">
-                    <img src="assets/OCA Logo.png" alt="BatstateU Logo" class="logo">
+                    <img src="assets/logo.jpg" alt="BatstateU Logo" class="logo">
                     <h1 class="title">Culture and Arts</h1>
                     <p class="subtitle">BatStateU TNEU</p>
                 </div>

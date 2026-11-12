@@ -118,7 +118,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true && isset($_
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/png" href="assets/OCA Logo.png">
+    <link rel="icon" type="image/jpeg" href="assets/logo.jpg">
     <meta name="description" content="Culture and Arts Management System of BatStateU TNEU — manage student artists, events, groups, and reports.">
     <style>
         :root{
@@ -264,7 +264,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true && isset($_
     <nav class="nav">
         <div class="nav-inner">
             <a class="brand" href="./" aria-label="Culture and Arts Home">
-                <img src="assets/OCA Logo.png" alt="BatStateU Culture and Arts logo">
+                <img src="assets/logo.jpg" alt="BatStateU Culture and Arts logo">
                 <span>Culture & Arts • BatStateU TNEU</span>
             </a>
             <div class="nav-links">
@@ -277,7 +277,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true && isset($_
     <section class="hero" aria-label="Office of Culture and Arts">
         <div class="hero-inner">
             <div class="hero-logo">
-                <img src="assets/OCA Logo.png" alt="BatStateU Culture & Arts Logo">
+                <img src="assets/logo.jpg" alt="BatStateU Culture & Arts Logo">
             </div>
         </div>
     </section>
@@ -322,7 +322,7 @@ if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true && isset($_
                     <!-- Header to match standalone login page design -->
                     <div class="login-header">
                         <div class="logo-section">
-                            <img src="assets/OCA Logo.png" alt="BatStateU Culture & Arts Logo" class="logo">
+                            <img src="assets/logo.jpg" alt="BatStateU Culture & Arts Logo" class="logo">
                             <h1 class="title">Culture and Arts</h1>
                             <p class="subtitle">BatStateU TNEU</p>
                         </div>
