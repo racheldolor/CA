@@ -1848,7 +1848,7 @@ ob_end_clean();
                         <input type="text" id="srCode" name="sr_code" pattern="^\d{2}-\d{5}$" title="Format: XX-XXXXX (e.g., 21-12345)">
                         <small>Format: XX-XXXXX (e.g., 21-12345)</small>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" id="addRoleGroup">
                         <label for="role">Role *</label>
                         <select id="role" name="role" required onchange="toggleSrCodeField()">
                             <option value="">Select Role</option>
@@ -1856,6 +1856,7 @@ ob_end_clean();
                             <option value="head">Head</option>
                             <option value="student">Student</option>
                         </select>
+                        <input type="hidden" id="addStudentRole" name="role" value="student" disabled>
                     </div>
                     <div class="form-group" id="campusGroup">
                         <label for="campus">Campus *</label>
@@ -1918,13 +1919,14 @@ ob_end_clean();
                         <input type="email" id="editEmail" name="email" required pattern=".*@g.batstate-u\.edu\.ph$" title="Must be a valid BatStateU email">
                         <small>Must be a valid @g.batstate-u.edu.ph email</small>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" id="editRoleGroup">
                         <label for="editRole">Role *</label>
                         <select id="editRole" name="role" required onchange="toggleEditCampusField()">
                             <option value="">Select Role</option>
                             <option value="head">Head</option>
                             <option value="director">Director</option>
                         </select>
+                        <input type="hidden" id="editStudentRole" name="role" value="student" disabled>
                     </div>
                     <div class="form-group" id="editCampusGroup">
                         <label for="editCampus">Campus *</label>
@@ -2025,6 +2027,7 @@ ob_end_clean();
 
         // Modal Functions
         function openModal() {
+            configureAddUserRoleField();
             document.getElementById('addUserModal').style.display = 'block';
             preventBackgroundScroll();
         }
@@ -2032,6 +2035,7 @@ ob_end_clean();
         function closeModal() {
             document.getElementById('addUserModal').style.display = 'none';
             document.getElementById('addUserForm').reset();
+            configureAddUserRoleField();
             allowBackgroundScroll();
         }
 
@@ -2132,6 +2136,8 @@ ob_end_clean();
                     document.getElementById('editPassword').value = '';
                     document.getElementById('editConfirmPassword').value = '';
                     
+                    configureEditRoleField(sourceTable === 'student_artists');
+
                     // Toggle campus field visibility based on role
                     toggleEditCampusField();
                     
@@ -2366,6 +2372,26 @@ ob_end_clean();
             }
         });
 
+        function configureAddUserRoleField() {
+            const isStudentsTab = document.getElementById('students-tab').classList.contains('active');
+            const roleGroup = document.getElementById('addRoleGroup');
+            const roleInput = document.getElementById('role');
+            const studentRoleInput = document.getElementById('addStudentRole');
+
+            roleGroup.style.display = isStudentsTab ? 'none' : 'block';
+            roleInput.disabled = isStudentsTab;
+            roleInput.required = !isStudentsTab;
+            studentRoleInput.disabled = !isStudentsTab;
+
+            if (isStudentsTab) {
+                roleInput.value = 'student';
+                toggleSrCodeField();
+            } else if (roleInput.value === 'student') {
+                roleInput.value = '';
+                toggleSrCodeField();
+            }
+        }
+
         function toggleSrCodeField() {
             const role = document.getElementById('role').value;
             const srCodeGroup = document.getElementById('srCodeGroup');
@@ -2393,6 +2419,17 @@ ob_end_clean();
                 campusGroup.style.display = 'block';
                 campusInput.required = true;
             }
+        }
+
+        function configureEditRoleField(isStudent) {
+            const roleGroup = document.getElementById('editRoleGroup');
+            const roleInput = document.getElementById('editRole');
+            const studentRoleInput = document.getElementById('editStudentRole');
+
+            roleGroup.style.display = isStudent ? 'none' : 'block';
+            roleInput.disabled = isStudent;
+            roleInput.required = !isStudent;
+            studentRoleInput.disabled = !isStudent;
         }
 
         function toggleEditCampusField() {
