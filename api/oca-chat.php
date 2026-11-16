@@ -206,8 +206,8 @@ $request = curl_init($url);
 curl_setopt_array($request, [
     CURLOPT_POST => true,
     CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_CONNECTTIMEOUT => 10,
-    CURLOPT_TIMEOUT => 60,
+    CURLOPT_CONNECTTIMEOUT => 5,
+    CURLOPT_TIMEOUT => 15,
     CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
     CURLOPT_POSTFIELDS => json_encode([
         'systemInstruction' => ['parts' => [['text' => $context]]],

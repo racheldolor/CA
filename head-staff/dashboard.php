@@ -8630,6 +8630,5 @@ try {
             });
         });
     </script>
-    <?php $chatbotBasePath = '../'; include __DIR__ . '/../components/oca-chatbot.php'; ?>
 </body>
 </html>
