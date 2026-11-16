@@ -210,12 +210,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt = $pdo->prepare("UPDATE \"$source_table\" SET status = 'suspended' WHERE id = ? AND status = 'active'");
                 $stmt->execute([$user_id]);
 
+                $notificationSent = true;
                 if ($stmt->rowCount() === 1) {
-                    NotificationService::sendAccountSuspension($pdo, $source_table, $user_id, $_POST['reason'] ?? null);
+                    try {
+                        $notificationSent = NotificationService::sendAccountSuspension($pdo, $source_table, $user_id, $_POST['reason'] ?? null);
+                    } catch (Throwable $notificationError) {
+                        $notificationSent = false;
+                        error_log('Account suspension notification failed: ' . $notificationError->getMessage());
+                    }
                 }
                 
                 logAdminAction($pdo, $_SESSION['admin_id'], 'USER_SUSPEND', $user_id, "User suspended in $source_table");
-                echo json_encode(['success' => true, 'message' => 'User suspended successfully']);
+                echo json_encode(['success' => true, 'notification_sent' => $notificationSent, 'message' => $notificationSent ? 'User suspended successfully' : 'User suspended successfully, but the notification email could not be delivered.']);
             } catch (Exception $e) {
                 echo json_encode(['success' => false, 'message' => 'Error suspending user']);
             }
@@ -232,12 +238,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt = $pdo->prepare("UPDATE \"$source_table\" SET status = 'active' WHERE id = ? AND status <> 'active'");
                 $stmt->execute([$user_id]);
 
+                $notificationSent = true;
                 if ($stmt->rowCount() === 1) {
-                    NotificationService::sendAccountActivation($pdo, $source_table, $user_id);
+                    try {
+                        $notificationSent = NotificationService::sendAccountActivation($pdo, $source_table, $user_id);
+                    } catch (Throwable $notificationError) {
+                        $notificationSent = false;
+                        error_log('Account activation notification failed: ' . $notificationError->getMessage());
+                    }
                 }
                 
                 logAdminAction($pdo, $_SESSION['admin_id'], 'USER_ACTIVATE', $user_id, "User activated in $source_table");
-                echo json_encode(['success' => true, 'message' => 'User activated successfully']);
+                echo json_encode(['success' => true, 'notification_sent' => $notificationSent, 'message' => $notificationSent ? 'User activated successfully' : 'User activated successfully, but the notification email could not be delivered.']);
             } catch (Exception $e) {
                 echo json_encode(['success' => false, 'message' => 'Error activating user']);
             }

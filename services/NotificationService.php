@@ -4,7 +4,7 @@ require_once __DIR__ . '/EmailService.php';
 
 final class NotificationService
 {
-    private const APP_URL = 'http://localhost/capstone';
+    private const APP_URL = 'http://localhost/CA';
 
     public static function sendAnnouncement(PDO $pdo, int $announcementId): void
     {
@@ -63,32 +63,34 @@ final class NotificationService
         self::deliver($pdo, $recipients, $notificationType, $eventId, $subject, $body['html'], $body['text'], $key);
     }
 
-    public static function sendAccountActivation(PDO $pdo, string $table, int $userId): void
+    public static function sendAccountActivation(PDO $pdo, string $table, int $userId): bool
     {
-        self::sendAccountStatus($pdo, $table, $userId, 'account_activated');
+        return self::sendAccountStatus($pdo, $table, $userId, 'account_activated');
     }
 
-    public static function sendAccountSuspension(PDO $pdo, string $table, int $userId, ?string $reason = null): void
+    public static function sendAccountSuspension(PDO $pdo, string $table, int $userId, ?string $reason = null): bool
     {
-        self::sendAccountStatus($pdo, $table, $userId, 'account_suspended', $reason);
+        return self::sendAccountStatus($pdo, $table, $userId, 'account_suspended', $reason);
     }
 
-    private static function sendAccountStatus(PDO $pdo, string $table, int $userId, string $type, ?string $reason = null): void
+    private static function sendAccountStatus(PDO $pdo, string $table, int $userId, string $type, ?string $reason = null): bool
     {
         self::ensureSchema($pdo);
         if (!in_array($table, ['users', 'student_artists'], true)) {
-            return;
+            return false;
         }
         $stmt = $pdo->prepare("SELECT id, email, first_name, last_name FROM \"$table\" WHERE id = ? AND status = '" . ($type === 'account_activated' ? 'active' : 'suspended') . "'");
         $stmt->execute([$userId]);
         $account = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$account || !filter_var($account['email'], FILTER_VALIDATE_EMAIL)) {
-            return;
+            return false;
         }
 
         $name = trim(($account['first_name'] ?? '') . ' ' . ($account['last_name'] ?? '')) ?: 'OCA user';
-        $subject = $type === 'account_activated' ? 'Your OCA account is now active' : 'Your OCA account has been suspended';
-        $date = date('F j, Y');
+        $subject = $type === 'account_activated'
+            ? 'Your OCA Account Has Been Activated'
+            : 'Important: Your OCA Account Has Been Suspended';
+        $date = self::now()->format('F j, Y');
         $safeName = self::escape($name);
         $safeReason = self::escape(trim((string)$reason));
         if ($type === 'account_activated') {
@@ -100,7 +102,7 @@ final class NotificationService
             $text = "Hello {$name},\n\nYour OCA account was suspended on {$date}." . ($reason ? "\nReason: {$reason}" : '') . "\nPlease contact the OCA administrator for assistance.";
         }
         $key = $type . ':' . $table . ':' . $userId . ':' . hash('sha256', $type . '|' . $date . '|' . (string)$reason);
-        self::deliver($pdo, [[
+        return self::deliver($pdo, [[
             'id' => (int)$account['id'],
             'email' => $account['email'],
             'table' => $table,
@@ -142,8 +144,9 @@ final class NotificationService
         return $recipients;
     }
 
-    private static function deliver(PDO $pdo, array $recipients, string $type, int $relatedId, string $subject, string $html, string $text, string $key): void
+    private static function deliver(PDO $pdo, array $recipients, string $type, int $relatedId, string $subject, string $html, string $text, string $key): bool
     {
+        $allSent = true;
         foreach ($recipients as $recipient) {
             $recipientKey = hash('sha256', $key . ':' . strtolower($recipient['email']));
             $stmt = $pdo->prepare('INSERT INTO notification_logs (recipient_email, recipient_user_id, recipient_table, notification_type, related_id, subject, notification_key, status) VALUES (?, ?, ?, ?, ?, ?, ?, \'pending\') ON CONFLICT (notification_key) DO NOTHING RETURNING id');
@@ -157,10 +160,12 @@ final class NotificationService
                 $sentAt = self::now()->format('Y-m-d H:i:s');
                 $pdo->prepare("UPDATE notification_logs SET status = 'sent', sent_at = ? WHERE id = ?")->execute([$sentAt, $logId]);
             } catch (Throwable $exception) {
+                $allSent = false;
                 $pdo->prepare("UPDATE notification_logs SET status = 'failed', error_message = ? WHERE id = ?")->execute([substr($exception->getMessage(), 0, 1000), $logId]);
                 error_log('Notification delivery failed: ' . $exception->getMessage());
             }
         }
+        return $allSent;
     }
 
     private static function ensureSchema(PDO $pdo): void
@@ -226,7 +231,14 @@ final class NotificationService
 
     private static function layout(string $content): string
     {
-        return '<!doctype html><html><body style="margin:0;background:#f5f6f8;font-family:Arial,Helvetica,sans-serif;color:#243047"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="padding:24px 12px;background:#f5f6f8"><tr><td align="center"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border:1px solid #e4e7ec"><tr><td style="background:#c93636;padding:24px 28px;color:#fff;font-size:22px;font-weight:bold">OCA Notification System</td></tr><tr><td style="padding:30px 28px;font-size:15px;line-height:1.6">' . $content . '</td></tr><tr><td style="border-top:1px solid #edf0f3;padding:18px 28px;color:#7a8492;font-size:12px">This is an automated message from the OCA Notification System.</td></tr></table></td></tr></table></body></html>';
+        return '<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>'
+            . '<body style="margin:0;background:#f5f6f8;font-family:Arial,Helvetica,sans-serif;color:#243047">'
+            . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f6f8;padding:24px 12px">'
+            . '<tr><td align="center"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e4e7ec">'
+            . '<tr><td style="background:#c93636;padding:24px 28px;color:#ffffff"><div style="font-size:22px;font-weight:bold">OCA Notification System</div><div style="font-size:13px;margin-top:5px;opacity:.9">Culture and Arts Management System</div></td></tr>'
+            . '<tr><td style="padding:32px 28px;font-size:15px;line-height:1.6">' . $content . '</td></tr>'
+            . '<tr><td style="border-top:1px solid #edf0f3;padding:18px 28px;color:#7a8492;font-size:12px;line-height:1.5">This is an automated message from the OCA Notification System. Please do not reply.</td></tr>'
+            . '</table></td></tr></table></body></html>';
     }
 
     private static function appUrl(): string
