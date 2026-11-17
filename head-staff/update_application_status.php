@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../config/database.php';
+require_once '../services/NotificationService.php';
 
 // Authentication check
 if (!isset($_SESSION['logged_in']) || !in_array($_SESSION['user_role'], ['head', 'admin'])) {
@@ -432,11 +433,22 @@ try {
         // Commit transaction
         $pdo->commit();
         
+        try {
+            $emailNotificationSent = NotificationService::sendApplicationDecision($pdo, $applicationId, $status);
+        } catch (Throwable $notificationError) {
+            $emailNotificationSent = false;
+            error_log('Application decision notification failed: ' . $notificationError->getMessage());
+        }
         $message = "Application {$status} successfully";
         if ($status === 'approved') {
             $message .= " and student account created with suspended status";
         } elseif ($status === 'rejected') {
             $message .= " and student account created as suspended and archived";
+        }
+        if ($emailNotificationSent) {
+            $message .= '. Email notification sent';
+        } else {
+            $message .= '. Email notification could not be sent';
         }
         
         echo json_encode([
