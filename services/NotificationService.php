@@ -63,6 +63,54 @@ final class NotificationService
         self::deliver($pdo, $recipients, $notificationType, $eventId, $subject, $body['html'], $body['text'], $key);
     }
 
+    public static function sendApplicationDecision(PDO $pdo, int $applicationId, string $status): bool
+    {
+        self::ensureSchema($pdo);
+        if (!in_array($status, ['approved', 'rejected'], true)) {
+            return false;
+        }
+
+        $stmt = $pdo->prepare('SELECT id, email, first_name, middle_name, last_name, full_name, sr_code FROM applications WHERE id = ?');
+        $stmt->execute([$applicationId]);
+        $application = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$application || !filter_var($application['email'] ?? null, FILTER_VALIDATE_EMAIL)) {
+            error_log('Application decision email skipped: application has no valid recipient.');
+            return false;
+        }
+
+        $name = trim(implode(' ', array_filter([
+            $application['first_name'] ?? '',
+            $application['middle_name'] ?? '',
+            $application['last_name'] ?? ''
+        ]))) ?: trim((string)($application['full_name'] ?? 'Student Artist')) ?: 'Student Artist';
+        $approved = $status === 'approved';
+        $subject = $approved
+            ? 'Your OCA Student Artist Application Was Accepted'
+            : 'Update on Your OCA Student Artist Application';
+        $safeName = self::escape($name);
+        $statusText = $approved ? 'accepted' : 'rejected';
+        $statusHeading = $approved ? 'Application accepted' : 'Application rejected';
+        $nextSteps = $approved
+            ? 'An administrator must activate your account before you can sign in. After your account is activated, please wait a few minutes and then try signing in using your registered email address and your SR-code as the default password. You can change your password after signing in.'
+            : 'You may reapply in the next semester. Please contact the Office of Culture and Arts if you need feedback about this decision.';
+        $html = self::layout(
+            '<h1>' . $statusHeading . '</h1>'
+            . '<p>Hello ' . $safeName . ',</p>'
+            . '<p>Your OCA Student Artist application has been <strong>' . $statusText . '</strong> by the Office of Culture and Arts.</p>'
+            . '<p>' . self::escape($nextSteps) . '</p>'
+            . '<p><a href="' . self::appUrl() . '/student/check-status.php">Check your application status</a></p>'
+        );
+        $text = "Hello {$name},\n\nYour OCA Student Artist application has been {$statusText} by the Office of Culture and Arts.\n\n{$nextSteps}\n\nCheck your application status at " . self::appUrl() . '/student/check-status.php';
+
+        return self::deliver($pdo, [[
+            'id' => null,
+            'email' => strtolower(trim($application['email'])),
+            'table' => 'applications',
+            'first_name' => $application['first_name'] ?? null,
+            'last_name' => $application['last_name'] ?? null
+        ]], 'application_decision', $applicationId, $subject, $html, $text, 'application_decision:' . $applicationId . ':' . $status);
+    }
+
     public static function sendAccountActivation(PDO $pdo, string $table, int $userId): bool
     {
         return self::sendAccountStatus($pdo, $table, $userId, 'account_activated');
@@ -118,7 +166,7 @@ final class NotificationService
         $seen = [];
         $audience = strtolower(trim($audience));
         $campus = strtolower(trim($campus));
-        $groups = array_values(array_filter(array_map(static fn($value): string => strtolower(trim((string)$value)), $groups), static fn(string $value): bool => $value !== '' && $value !== 'all'));
+        $groups = array_values(array_filter(array_map(static fn(mixed $value): string => strtolower(trim((string)$value)), $groups), static fn(string $value): bool => $value !== '' && $value !== 'all'));
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $recipient) {
             $email = strtolower(trim((string)$recipient['email']));
             if ($email === '' || isset($seen[$email])) {
@@ -175,7 +223,7 @@ final class NotificationService
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_notification_logs_related ON notification_logs(notification_type, related_id)');
     }
 
-    private static function decodeTargets($value): array
+    private static function decodeTargets(mixed $value): array
     {
         if (is_array($value)) {
             return $value;
