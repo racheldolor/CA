@@ -13,6 +13,7 @@
 	const send = root.querySelector('[data-chatbot-send]');
 	const endpoint = root.dataset.endpoint;
 	const faqItems = [
+		'How do I change or recover my password?',
 		'How do I update my profile information?',
 		'How do I request a costume or inventory item?',
 		'How can I view my borrowing requests?',

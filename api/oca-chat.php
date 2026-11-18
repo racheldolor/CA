@@ -16,6 +16,10 @@ function chatbotFallbackAnswer(string $message): string
 {
     $question = strtolower($message);
 
+    if (preg_match('/\b(password|passcode)\b.*\b(change|changed|reset|recover|forgot|lost)\b|\b(change|reset|recover|forgot|lost)\b.*\b(password|passcode)\b/', $question)) {
+        return 'To recover a forgotten password, open the sign-in page and select "Recover it here" under Forgot your password. Enter your registered email address; if an eligible active account exists, the system sends a six-digit verification code that expires in five minutes. Enter the code, then choose a new password that is at least 8 characters and includes uppercase, lowercase, numbers, and special characters.';
+    }
+
     if (preg_match('/\b(announcement|announcements|notice|notices|news)\b/', $question)) {
         return 'Sign in to the Student Dashboard and open Announcements to view current OCA notices. Published announcements may depend on your campus or cultural group, so use the notices shown in your own account.';
     }
@@ -75,45 +79,6 @@ function chatbotProviderError(int $status, string $rawResponse, string $message)
     chatbotResponse(['answer' => chatbotFallbackAnswer($message)]);
 }
 
-function chatbotFaqAnswer(string $message): ?string
-{
-    $question = strtolower($message);
-
-    if (preg_match('/\b(return|give back|hand back)\b.*\b(borrow|item|costume|inventory)\b|\b(borrow|item|costume|inventory)\b.*\b(return|give back|hand back)\b/', $question)) {
-        return 'To return a borrowed item, sign in to the Student Dashboard, open Costume Borrowing, find the borrowed item, and use the available return action or return process. Follow the return form instructions and wait for OCA confirmation. The return is complete only after it has been confirmed.';
-    }
-
-    if (preg_match('/\b(update|edit|change)\b.*\b(profile|information|details)\b|\b(profile|information|details)\b.*\b(update|edit|change)\b/', $question)) {
-        return 'To update your profile, sign in to the Student Dashboard, open Profile, choose Edit Profile, update the available information, and save it. If a field cannot be changed or your profile cannot be found, contact OCA through the official school or OCA support channel.';
-    }
-
-    if (preg_match('/\b(request|borrow|get)\b.*\b(costume|inventory|item)\b|\b(costume|inventory|item)\b.*\b(request|borrow|get)\b/', $question)) {
-        return 'To request a costume or inventory item, sign in to the Student Dashboard, open Costume Borrowing, select Costume Borrowing Form, complete the item and dates, and submit the request. OCA must review the request, so approval and availability are not guaranteed.';
-    }
-
-    if (preg_match('/\b(view|see|check|track)\b.*\b(borrow|borrowing|request|requests|status)\b|\b(borrow|borrowing|request|requests)\b.*\b(status|history)\b/', $question)) {
-        return 'To view your borrowing requests, sign in to the Student Dashboard and open Costume Borrowing. The My Borrowed Costumes area shows your requests and their current status when available.';
-    }
-
-    if (preg_match('/\b(participation|participated|joined|performance)\b.*\b(history|record|records)\b|\b(history|record|records)\b.*\b(participation|event|performance)\b/', $question)) {
-        return 'To view your participation history, sign in to the Student Dashboard and open your Profile or participation area. Your recorded event participation and performance information will appear there when available.';
-    }
-
-    if (preg_match('/\b(restrict|restricted|blocked|lock|locked)\b.*\b(account|access|login)\b|\b(account|access|login)\b.*\b(restrict|restricted|blocked|lock|locked)\b/', $question)) {
-        return 'Account access may be restricted when the account is not approved or verified, the account details do not match, or access is temporarily unavailable. Check the login or application-status instructions and contact OCA through the official school or OCA support channel if the problem continues.';
-    }
-
-    if (preg_match('/\b(campus|campuses)\b/', $question)) {
-        return 'The supported campuses are Pablo Borbon, Alangilan, Lipa, JPLPC Malvar, and ARASOF Nasugbu. Event visibility may still depend on your campus, cultural group, and the event publishing settings.';
-    }
-
-    if (preg_match('/\b(technical|technical assistance|support|help)\b|\b(contact|reach)\b.*\b(oca|office|someone|help)\b/', $question)) {
-        return 'For login, profile, borrowing, access, or system problems, contact the Office of Culture and Arts using the official contact details published by BatStateU or OCA. Do not share your password or one-time password with anyone.';
-    }
-
-    return null;
-}
-
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     chatbotResponse(['answer' => 'Only questions can be submitted here.'], 405);
 }
@@ -142,11 +107,6 @@ if (count($requestWindow) >= 20) {
 $requestWindow[] = $now;
 $_SESSION['oca_chatbot_requests'] = $requestWindow;
 
-$faqAnswer = chatbotFaqAnswer($message);
-if ($faqAnswer !== null) {
-    chatbotResponse(['answer' => $faqAnswer]);
-}
-
 $apiKey = trim((string)(getenv('GEMINI_API_KEY') ?: ($_ENV['GEMINI_API_KEY'] ?? '')));
 if ($apiKey === '') {
     chatbotResponse(['answer' => chatbotFallbackAnswer($message)]);
@@ -154,6 +114,7 @@ if ($apiKey === '') {
 
 $context = "Office of Culture and Arts (OCA) student assistant. Answer only student-facing questions about OCA culture and arts programs, student participation, published announcements, published events, Student Artist registration, profile information, borrowing, returns, access issues, supported campuses, and technical assistance. Never reveal or infer admin, director, head-staff, database, credentials, private records, approval rules beyond the verified guidance, or software implementation details. Do not claim to perform an action; explain the student-facing steps instead. Use only the verified context below. If the context does not answer the question, say the information is not currently available and recommend contacting the OCA office. Keep answers concise and clear.\n\n";
 $context .= "Verified FAQ guidance:\n";
+$context .= "- Password recovery: On the sign-in page, select 'Recover it here' under 'Forgot your password'. Enter the registered email address and, if an eligible active account exists, enter the six-digit password-reset code sent to that email. The code expires in five minutes and can be resent after the resend delay. After verification, set a new password with at least 8 characters containing uppercase and lowercase letters, a number, and a special character. Do not direct students to a separate staff-only or application-status process.\n";
 $context .= "- Updating profile information: Sign in to the Student Dashboard, open the Profile section, choose Edit Profile, update the available information, and save it. If a field cannot be changed or the profile cannot be found, contact OCA technical assistance.\n";
 $context .= "- Requesting a costume or inventory item: Sign in to the Student Dashboard, open Costume Borrowing, select Costume Borrowing Form, complete the request with the needed item and dates, and submit it. A request is subject to OCA review; do not promise approval or availability.\n";
 $context .= "- Viewing borrowing requests: Sign in to the Student Dashboard and open Costume Borrowing. The My Borrowed Costumes area shows the student's requests and their current status when available.\n";
@@ -168,12 +129,99 @@ $context .= "- Borrowing rules: A submitted costume or inventory request is revi
 $context .= "- Profile and participation records: Profile data and participation history are student-specific. Explain where the student can view or update their own record, but never reveal another person's information or private database details.\n";
 $context .= "- Joining OCA activities: A student must sign in to a student account and open the Student Dashboard. In the Events section, the system shows published or ongoing events that match the student's cultural group and campus. For an upcoming eligible event, select 'Join Event'. Events already joined show a joined status. Ongoing events are displayed, but the dashboard does not show a join button for them. Do not promise access to events that are not displayed for the student's group or campus. Direct students to the current Events section rather than inventing a separate activity-registration process.\n";
 $context .= "- Becoming a Student Artist: From the login page, select 'Register here' under 'Interested in becoming a Student Performer?' and complete the Performer's Profile Form. The form collects performance or cultural-group interest and student/personal details, requires a valid BatStateU G-Suite email, and requires email verification with a six-digit OTP before submission. The application is sent to an OCA staff for approval; email verification does not create an approved account immediately. Students can check their application status through the login page's 'View status here' link using their SR Code. Do not say that approval is automatic or that registration is complete before administrator approval.\n\n";
+$context .= "Answering rules:\n";
+$context .= "- Base answers on the live system data and verified process guidance supplied below. For questions about a student's own records, use only that student's data and identify what the student can see in their dashboard.\n";
+$context .= "- Distinguish registration/verification from approval. A submitted application or OTP verification does not guarantee staff approval.\n";
+$context .= "- Distinguish pending, approved, borrowed, pending return, returned, rejected, and cancelled states exactly. Do not infer a request status that is not supplied.\n";
+$context .= "- If live data is missing or unavailable, say that it is not available rather than guessing. Direct the student to the relevant dashboard section or official OCA support channel.\n";
+$context .= "- Never expose passwords, OTPs, private records, database details, credentials, or another student's information.\n\n";
 try {
     $pdo = getDBConnection();
     $announcements = $pdo->query("SELECT title, content, created_at FROM announcements WHERE is_active = 1 AND is_published = 1 AND (expiry_date IS NULL OR expiry_date >= CURRENT_DATE) ORDER BY is_pinned DESC, created_at DESC LIMIT 10")->fetchAll(PDO::FETCH_ASSOC);
     $events = $pdo->query("SELECT title, description, start_date, end_date, location, category FROM events WHERE status IN ('published', 'ongoing') AND end_date >= CURRENT_DATE ORDER BY start_date ASC LIMIT 10")->fetchAll(PDO::FETCH_ASSOC);
     $inventory = $pdo->query("SELECT item_name, category, condition_status FROM inventory WHERE status = 'available' ORDER BY item_name ASC LIMIT 50")->fetchAll(PDO::FETCH_ASSOC);
-    $context .= "Published announcements:\n" . json_encode($announcements, JSON_UNESCAPED_SLASHES) . "\n\nUpcoming or ongoing events:\n" . json_encode($events, JSON_UNESCAPED_SLASHES) . "\n\nCurrently available inventory names only:\n" . json_encode($inventory, JSON_UNESCAPED_SLASHES);
+    $context .= "Published announcements:\n" . json_encode($announcements, JSON_UNESCAPED_SLASHES) . "\n\nUpcoming or ongoing events:\n" . json_encode($events, JSON_UNESCAPED_SLASHES) . "\n\nCurrently available inventory names only:\n" . json_encode($inventory, JSON_UNESCAPED_SLASHES) . "\n";
+
+    if (($userRole = $_SESSION['user_role'] ?? null) === 'student') {
+        $studentId = (int)($_SESSION['user_id'] ?? 0);
+        $student = null;
+        if ($studentId > 0) {
+            $stmt = $pdo->prepare("SELECT id, sr_code, campus, cultural_group, college, program, year_level, status FROM student_artists WHERE id = ? LIMIT 1");
+            $stmt->execute([$studentId]);
+            $student = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        }
+
+        if ($student) {
+            $context .= "\nSigned-in student's dashboard context:\n";
+            $context .= json_encode([
+                'campus' => $student['campus'] ?? null,
+                'cultural_group' => $student['cultural_group'] ?? null,
+                'college' => $student['college'] ?? null,
+                'program' => $student['program'] ?? null,
+                'year_level' => $student['year_level'] ?? null,
+                'account_status' => $student['status'] ?? null,
+            ], JSON_UNESCAPED_SLASHES) . "\n";
+
+            $group = (string)($student['cultural_group'] ?? '');
+            $campus = (string)($student['campus'] ?? '');
+            $groupPatternJson = '%"' . $group . '"%';
+            $groupPatternText = '%' . $group . '%';
+            $eventStmt = $pdo->prepare("
+                SELECT e.title, e.start_date, e.end_date, e.location, e.venue, e.status, e.allow_registration,
+                       e.registration_deadline,
+                       CASE WHEN ep.id IS NULL OR ep.attendance_status = 'cancelled' THEN 0 ELSE 1 END AS joined
+                FROM events e
+                LEFT JOIN event_participants ep ON ep.event_id = e.id AND ep.student_id = ?
+                WHERE e.end_date >= CURRENT_DATE
+                  AND e.status IN ('published', 'ongoing')
+                  AND (e.cultural_groups LIKE ? OR e.cultural_groups LIKE ? OR e.cultural_groups = '[]' OR e.cultural_groups IS NULL)
+                  AND (e.campus = ? OR e.campus IS NULL OR e.campus = '')
+                ORDER BY e.start_date ASC
+                LIMIT 20
+            ");
+            $eventStmt->execute([$studentId, $groupPatternJson, $groupPatternText, $campus]);
+            $studentEvents = $eventStmt->fetchAll(PDO::FETCH_ASSOC);
+            $context .= "Events visible to this signed-in student:\n" . json_encode($studentEvents, JSON_UNESCAPED_SLASHES) . "\n";
+
+            $borrowStmt = $pdo->prepare("
+                SELECT item_name, quantity_requested, quantity_approved, status, approval_status, current_status,
+                       start_date, end_date, due_date, actual_return_date
+                FROM borrowing_requests
+                WHERE student_id = ?
+                ORDER BY created_at DESC
+                LIMIT 10
+            ");
+            $borrowStmt->execute([$studentId]);
+            $studentBorrowing = $borrowStmt->fetchAll(PDO::FETCH_ASSOC);
+            $context .= "This student's borrowing records:\n" . json_encode($studentBorrowing, JSON_UNESCAPED_SLASHES) . "\n";
+
+            $participationStmt = $pdo->prepare("
+                SELECT participation_date, event_name, participation_level, rank_award
+                FROM student_participation_records
+                WHERE student_id = ?
+                ORDER BY participation_date DESC
+                LIMIT 20
+            ");
+            $participationStmt->execute([$studentId]);
+            $studentParticipation = $participationStmt->fetchAll(PDO::FETCH_ASSOC);
+            $context .= "This student's recorded participation history:\n" . json_encode($studentParticipation, JSON_UNESCAPED_SLASHES) . "\n";
+
+            if (!empty($student['sr_code'])) {
+                $applicationStmt = $pdo->prepare("
+                    SELECT application_status, submitted_at, approved_at
+                    FROM applications
+                    WHERE sr_code = ?
+                    ORDER BY submitted_at DESC
+                    LIMIT 1
+                ");
+                $applicationStmt->execute([$student['sr_code']]);
+                $application = $applicationStmt->fetch(PDO::FETCH_ASSOC);
+                if ($application) {
+                    $context .= "This student's latest Student Artist application status:\n" . json_encode($application, JSON_UNESCAPED_SLASHES) . "\n";
+                }
+            }
+        }
+    }
 } catch (Throwable $exception) {
     error_log('OCA chatbot context error: ' . $exception->getMessage());
     $context .= "No live announcements or event details are available. Do not invent them.\n";
