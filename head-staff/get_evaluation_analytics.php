@@ -15,7 +15,7 @@ $user_role = $_SESSION['user_role'];
 $user_email = $_SESSION['user_email'];
 $user_campus = $_SESSION['user_campus'] ?? null;
 
-$canViewAll = ($user_role === 'admin' || ($user_campus === 'Pablo Borbon' && $user_role === 'head'));
+$canViewAll = ($user_role === 'admin' || $user_role === 'director' || ($user_campus === 'Pablo Borbon' && $user_role === 'head'));
 
 try {
     $pdo = getDBConnection();
@@ -36,6 +36,23 @@ try {
     if (($mode === 'specific' || $mode === 'individual') && $eventId) {
         $whereConditions[] = "e.event_id = ?";
         $params[] = $eventId;
+    }
+
+    // Keep evaluation responses scoped to the logged-in head's campus.
+    // The All Evaluations mode changes event selection, not RBAC boundaries.
+    if (!$canViewAll && $user_campus) {
+        if ($user_campus === 'JPLPC Malvar') {
+            $whereConditions[] = '(sa.campus = ? OR sa.campus = ?)';
+            $params[] = 'JPLPC Malvar';
+            $params[] = 'Malvar';
+        } elseif ($user_campus === 'ARASOF Nasugbu') {
+            $whereConditions[] = '(sa.campus = ? OR sa.campus = ?)';
+            $params[] = 'ARASOF Nasugbu';
+            $params[] = 'Nasugbu';
+        } else {
+            $whereConditions[] = 'sa.campus = ?';
+            $params[] = $user_campus;
+        }
     }
     
     if (!empty($whereConditions)) {
@@ -58,8 +75,18 @@ try {
     
     $eventParams = [];
     if (!$canViewAll && $user_campus) {
-        $eventsQuery .= " WHERE ev.campus = ?";
-        $eventParams[] = $user_campus;
+        if ($user_campus === 'JPLPC Malvar') {
+            $eventsQuery .= " WHERE (ev.campus = ? OR ev.campus = ?)";
+            $eventParams[] = 'JPLPC Malvar';
+            $eventParams[] = 'Malvar';
+        } elseif ($user_campus === 'ARASOF Nasugbu') {
+            $eventsQuery .= " WHERE (ev.campus = ? OR ev.campus = ?)";
+            $eventParams[] = 'ARASOF Nasugbu';
+            $eventParams[] = 'Nasugbu';
+        } else {
+            $eventsQuery .= " WHERE ev.campus = ?";
+            $eventParams[] = $user_campus;
+        }
     }
     
     $eventsQuery .= " GROUP BY ev.id, ev.title, ev.location, ev.category, ev.start_date

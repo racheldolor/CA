@@ -12,25 +12,30 @@ final class OtpService
 
     public static function issue(PDO $pdo, string $email, string $purpose, ?string $accountTable = null, ?int $accountId = null, ?int $existingChallengeId = null): array
     {
-        $now = time();
-        $lockStmt = $pdo->prepare('SELECT resend_locked_until FROM otp_challenges WHERE email = ? AND purpose = ? AND resend_locked_until IS NOT NULL ORDER BY id DESC LIMIT 1');
+        $lockStmt = $pdo->prepare('SELECT resend_locked_until FROM otp_challenges WHERE email = ? AND purpose = ? AND resend_locked_until > CURRENT_TIMESTAMP ORDER BY id DESC LIMIT 1');
         $lockStmt->execute([$email, $purpose]);
         $lock = $lockStmt->fetchColumn();
-        if ($lock && strtotime($lock) > $now) {
+        if ($lock) {
             throw new RuntimeException('Too many resend requests. Please wait 2 hours before trying again.');
         }
         if ($existingChallengeId !== null) {
-            $stmt = $pdo->prepare('SELECT resend_available_at, resend_count, resend_locked_until FROM otp_challenges WHERE id = ? AND invalidated_at IS NULL AND used_at IS NULL');
+            $stmt = $pdo->prepare('SELECT resend_available_at, resend_count, resend_locked_until,
+                CASE WHEN resend_available_at > CURRENT_TIMESTAMP THEN 1 ELSE 0 END AS cooldown_active,
+                CASE WHEN resend_locked_until > CURRENT_TIMESTAMP THEN 1 ELSE 0 END AS lock_active
+                FROM otp_challenges WHERE id = ? AND invalidated_at IS NULL AND used_at IS NULL');
             $stmt->execute([$existingChallengeId]);
             $existing = $stmt->fetch();
-            if (!$existing || strtotime($existing['resend_available_at']) > $now) {
+            if (!$existing) {
+                throw new RuntimeException('This verification request is no longer valid.');
+            }
+            if ((int)$existing['cooldown_active'] === 1) {
                 throw new RuntimeException('Please wait before requesting another code.');
             }
-            if (!empty($existing['resend_locked_until']) && strtotime($existing['resend_locked_until']) > $now) {
+            if ((int)$existing['lock_active'] === 1) {
                 throw new RuntimeException('Too many resend requests. Please wait 2 hours before trying again.');
             }
             if ((int)$existing['resend_count'] >= self::MAX_RESENDS) {
-                $pdo->prepare('UPDATE otp_challenges SET resend_locked_until = to_timestamp(?) WHERE id = ?')->execute([$now + self::RESEND_LOCK_SECONDS, $existingChallengeId]);
+                $pdo->prepare("UPDATE otp_challenges SET resend_locked_until = CURRENT_TIMESTAMP + INTERVAL '2 hours' WHERE id = ?")->execute([$existingChallengeId]);
                 throw new RuntimeException('Too many resend requests. Please wait 2 hours before trying again.');
             }
         }
@@ -45,8 +50,9 @@ final class OtpService
         if ($existingChallengeId !== null) {
             $resendCount = (int)$existing['resend_count'] + 1;
         }
-        $lockedUntil = $resendCount >= self::MAX_RESENDS ? $now + self::RESEND_LOCK_SECONDS : null;
-        $stmt = $pdo->prepare('INSERT INTO otp_challenges (purpose, email, account_table, account_id, challenge_token_hash, otp_hash, expires_at, resend_available_at, resend_count, resend_locked_until, ip_address) VALUES (?, ?, ?, ?, ?, ?, to_timestamp(?), to_timestamp(?), ?, to_timestamp(?), ?) RETURNING id');
+        $stmt = $pdo->prepare("INSERT INTO otp_challenges (purpose, email, account_table, account_id, challenge_token_hash, otp_hash, expires_at, resend_available_at, resend_count, resend_locked_until, ip_address)
+            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP + INTERVAL '5 minutes', CURRENT_TIMESTAMP + INTERVAL '60 seconds', ?, CASE WHEN ? >= ? THEN CURRENT_TIMESTAMP + INTERVAL '2 hours' ELSE NULL END, ?)
+            RETURNING id");
         $stmt->execute([
             $purpose,
             $email,
@@ -54,26 +60,34 @@ final class OtpService
             $accountId,
             hash('sha256', $challengeToken),
             password_hash($otp, PASSWORD_DEFAULT),
-            $now + self::TTL,
-            $now + self::RESEND_COOLDOWN,
             $resendCount,
-            $lockedUntil,
+            $resendCount,
+            self::MAX_RESENDS,
             $_SERVER['REMOTE_ADDR'] ?? null
         ]);
-
+        $challengeId = (int)$stmt->fetchColumn();
+        $challengeStmt = $pdo->prepare('SELECT id,
+            EXTRACT(EPOCH FROM expires_at)::bigint AS expires_at,
+            EXTRACT(EPOCH FROM resend_available_at)::bigint AS resend_at,
+            CASE WHEN resend_locked_until IS NULL THEN NULL ELSE EXTRACT(EPOCH FROM resend_locked_until)::bigint END AS locked_until
+            FROM otp_challenges WHERE id = ?');
+        $challengeStmt->execute([$challengeId]);
+        $stored = $challengeStmt->fetch(PDO::FETCH_ASSOC);
         return [
-            'id' => (int)$stmt->fetchColumn(),
+            'id' => $challengeId,
             'token' => $challengeToken,
-            'expires_at' => $now + self::TTL,
-            'resend_at' => $now + self::RESEND_COOLDOWN,
+            'expires_at' => (int)$stored['expires_at'],
+            'resend_at' => (int)$stored['resend_at'],
             'resend_count' => $resendCount,
-            'locked_until' => $lockedUntil
+            'locked_until' => $stored['locked_until'] === null ? null : (int)$stored['locked_until']
         ];
     }
 
     public static function verify(PDO $pdo, int $id, string $token, string $purpose, string $otp): array
     {
-        $stmt = $pdo->prepare('SELECT * FROM otp_challenges WHERE id = ? AND purpose = ? AND invalidated_at IS NULL AND used_at IS NULL FOR UPDATE');
+        $stmt = $pdo->prepare('SELECT *,
+            CASE WHEN expires_at <= CURRENT_TIMESTAMP THEN 1 ELSE 0 END AS is_expired
+            FROM otp_challenges WHERE id = ? AND purpose = ? AND invalidated_at IS NULL AND used_at IS NULL FOR UPDATE');
         $pdo->beginTransaction();
         try {
             $stmt->execute([$id, $purpose]);
@@ -81,11 +95,9 @@ final class OtpService
             if (!$challenge || !hash_equals($challenge['challenge_token_hash'], hash('sha256', $token))) {
                 throw new RuntimeException('This verification request is no longer valid.');
             }
-            if (!empty($challenge['resend_locked_until']) && strtotime($challenge['resend_locked_until']) > time()) {
-                throw new RuntimeException('Too many resend requests. Please wait 2 hours before trying again.');
-            }
-            if (strtotime($challenge['expires_at']) <= time()) {
+            if ((int)$challenge['is_expired'] === 1) {
                 $pdo->prepare('UPDATE otp_challenges SET invalidated_at = CURRENT_TIMESTAMP WHERE id = ?')->execute([$id]);
+                $pdo->commit();
                 throw new RuntimeException('This code has expired. Request a new code.');
             }
             if (!preg_match('/^\d{6}$/', $otp) || !password_verify($otp, $challenge['otp_hash'])) {
