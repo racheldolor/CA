@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Register | Culture and Arts</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Register | Culture and Arts</title><link rel="icon" type="image/jpeg" href="../assets/logo.jpg?v=2">
 <style>
 body{font-family:Arial,sans-serif;background:#f4f5f7;margin:0;padding:2rem;color:#243047}.card{max-width:560px;margin:auto;background:#fff;padding:2rem;border-radius:14px;box-shadow:0 12px 35px #0002}h1{text-align:center;color:#c93636}p{line-height:1.5}.grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.field{display:flex;flex-direction:column;gap:.35rem;margin:1rem 0}.field.full{grid-column:1/-1}input,select,button{font:inherit;padding:.8rem;border:1px solid #ccd2db;border-radius:8px}button{background:#c93636;color:#fff;border:0;cursor:pointer;font-weight:bold}button:disabled{opacity:.6}.message{padding:.8rem;border-radius:8px;margin:1rem 0}.error{background:#ffe5e5;color:#8b1e1e}.success{background:#e2f5e8;color:#176b35}.muted{color:#667085;font-size:.9rem}.otp{letter-spacing:.5rem;text-align:center;font-size:1.4rem}.link{text-align:center;margin-top:1.5rem}.link a{color:#c93636}@media(max-width:600px){.grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
 </style>

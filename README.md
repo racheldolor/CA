@@ -54,7 +54,7 @@ The database schema is provided in `FINALDATABASE.sql` and includes tables for:
 
 ## Email OTP Setup
 
-Registration and password recovery use PHPMailer with Gmail SMTP. Enable two-step verification on `oca.notification@gmail.com`, create a Google App Password, and do not use the normal Gmail password. Configure these values outside the repository:
+Registration, password recovery, and student artist application decisions use PHPMailer with Gmail SMTP. Enable two-step verification on `oca.notification@gmail.com`, create a Google App Password, and do not use the normal Gmail password. Configure these values outside the repository:
 
 ```text
 OCA_SMTP_HOST=smtp.gmail.com
